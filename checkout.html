@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Koperasi Rutan — Belanja Tanpa Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ---------------------------
+       Reset & base
+       --------------------------- */
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --accent:#0b76ef;
+      --muted:#6b7280;
+      --success:#16a34a;
+      --danger:#dc2626;
+      --glass: rgba(255,255,255,0.6);
+      --shadow: 0 6px 18px rgba(7,12,30,0.08);
+      --maxw:1100px;
+      --radius:12px;
+      color-scheme: light;
+       font-family: 'Poppins', sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        linear-gradient(180deg, rgba(11,118,239,0.05), transparent 40%),
+        var(--bg);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:28px;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      gap:24px;
+      min-height:100%;
+    }
+
+
+    .container{
+      width:100%;
+      max-width: var(--maxw);
+      display:grid;
+      grid-template-columns: 1fr 380px;
+      gap:22px;
+      align-items:start;
+    }
+    header{
+      grid-column:1 / -1;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:6px;
+    }
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .logo{
+      width:56px;height:56px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),#7cc3ff);
+      display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;
+      box-shadow: var(--shadow);
+      font-size:18px;
+    }
+    h1{margin:0;font-size:18px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    /* ---------------------------
+       Product grid
+       --------------------------- */
+    .catalog{
+      background:var(--card);
+      border-radius: var(--radius);
+      padding:18px;
+      box-shadow:var(--shadow);
+      min-height:400px;
+    }
+    .search-row{
+      display:flex;gap:10px;margin-bottom:12px;
+    }
+    .search-row input[type="search"]{
+      flex:1;padding:10px 12px;border-radius:10px;border:1px solid #e6e9ef;background:#fbfcff;
+      outline:none;font-size:14px;
+    }
+    .products{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:12px;
+    }
+    .card{
+      background:linear-gradient(180deg, #fff, #fbfdff);
+      border-radius:10px;padding:10px;display:flex;gap:10px;align-items:center;
+      border:1px solid #eef2f7;
+    }
+    .thumb{
+      width:70px;height:70px;border-radius:8px;background:#f3f6fb;display:flex;align-items:center;justify-content:center;font-weight:600;
+      font-size:13px;color:var(--muted);
+    }
+    .meta{flex:1}
+    .meta h3{margin:0;font-size:14px}
+    .meta p{margin:4px 0 0 0;font-size:12px;color:var(--muted)}
+    .price{font-weight:700;color:var(--accent);font-size:14px}
+    .add-btn{
+      background:var(--accent);color:#fff;padding:8px 10px;border-radius:10px;border:none;cursor:pointer;font-size:13px;
+    }
+    
+
+    /* ---------------------------
+       Cart (right column)
+       --------------------------- */
+    .cart{
+      background:var(--card);border-radius:12px;padding:16px;box-shadow:var(--shadow);position:sticky;top:28px;
+      height:fit-content;
+    }
+    .cart h2{margin:0 0 8px 0;font-size:16px}
+    .cart-list{display:flex;flex-direction:column;gap:10px;max-height:320px;overflow:auto;padding-right:6px}
+    .cart-item{display:flex;gap:10px;align-items:center;border-radius:10px;padding:8px;background:#fbfdff;border:1px solid #eef2f7}
+    .cart-item .ci-left{flex:1}
+    .qty{display:flex;gap:6px;align-items:center}
+    .qty button{background:#edf2ff;border:1px solid #e8eefc;padding:6px 8px;border-radius:8px;cursor:pointer}
+    .checkout-btn{
+      display:block;width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#2aa0ff);
+      color:#fff;font-weight:700;margin-top:10px;cursor:pointer;
+    }
+    .small{font-size:13px;color:var(--muted)}
+
+    /* ---------------------------
+       Modal / Checkout form
+       --------------------------- */
+    .modal{
+      position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;
+    }
+    .modal.show{display:flex}
+    .modal-backdrop{position:absolute;inset:0;background:rgba(7,12,30,0.45);backdrop-filter:blur(2px)}
+    .modal-card{
+      position:relative;z-index:2;width:100%;max-width:720px;background:var(--card);border-radius:12px;padding:18px;box-shadow:var(--shadow);
+    }
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+    .form-row.single{grid-template-columns:1fr}
+    label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
+    input, select, textarea{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #eef2f7;background:#fbfdff;font-size:14px;
+    }
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+    .btn-muted{background:#f1f5f9;border:1px solid #e6edf9;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .btn-primary{background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+
+    /* ---------------------------
+       Receipt area (for printing)
+       --------------------------- */
+    .receipt{
+      display:none;
+      width:320px;padding:16px;background:#fff;border-radius:8px;font-size:13px;
+    }
+    .receipt h3{text-align:center;margin:0 0 6px 0}
+    .receipt .line{border-top:1px dashed #e6eef7;margin:8px 0}
+    .receipt .items{display:flex;flex-direction:column;gap:6px}
+    .receipt .foot{text-align:center;margin-top:10px;color:var(--muted);font-size:12px}
+
+    /* ---------------------------
+       Responsive
+       --------------------------- */
+    @media (max-width:980px){
+      .container{grid-template-columns:1fr; padding-bottom:60px}
+      .products{grid-template-columns: repeat(2,1fr)}
+      .cart{position:static}
+    }
+    @media (max-width:560px){
+      .products{grid-template-columns: 1fr}
+      .logo{width:44px;height:44px;font-size:15px}
+    }
+
+    /* ---------------------------
+       Print styles for receipt
+       --------------------------- */
+    @media print{
+      body *{visibility:hidden}
+      .printable{visibility:visible;position:fixed;left:0;top:0;width:100%}
+    }
+
+    .products{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:16px;
+}
+
+.card{
+  background:linear-gradient(180deg, #fff, #fbfdff);
+  border-radius:10px;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  border:1px solid #eef2f7;
+  text-align:center;
+  transition:transform 0.2s;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+}
+
+.thumb{
+  width:100%;
+  height:120px;
+  border-radius:8px;
+  background:#f3f6fb;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:600;
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:10px;
+}
+
+.meta h3{
+  margin:0;
+  font-size:15px;
+}
+
+.meta p{
+  margin:4px 0 8px 0;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.price{
+  font-weight:700;
+  color:var(--accent);
+  font-size:14px;
+  margin-bottom:8px;
+}
+
+.add-btn{
+  background:var(--accent);
+  color:#fff;
+  padding:8px 10px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-size:13px;
+  margin-top:auto;
+  transition:background 0.3s;
+}
+
+.add-btn:hover{
+  background:#0a5ed9;
+}
+
+
+    /* small helper */
+    .muted{color:var(--muted);font-size:13px}
+    .badge{background:#f1f6ff;color:var(--accent);padding:4px 8px;border-radius:999px;font-weight:600;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <header>
+      <div class="brand" aria-hidden="false">
+        <div>
+          <h1>TabeOM</h1>
+          <p class="lead">Belanja untuk keluarga WBP</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="muted">Buka: <strong>08:00 - 15:00</strong></div>
+      </div>
+    </header>
+
+    <!-- Catalog -->
+    <section class="catalog" aria-labelledby="catalog-title">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 id="catalog-title" style="font-size:16px;margin:0">Daftar Produk</h2>
+        <div class="small muted">Pilih & tambahkan ke keranjang</div>
+      </div>
+
+      <div class="search-row">
+        <input id="search" type="search" placeholder="Cari produk (mis. sabun, rokok—jika diperbolehkan)" aria-label="Cari produk">
+        <select id="filter-cat" aria-label="Filter kategori" style="padding:10px;border-radius:10px;border:1px solid #e6e9ef">
+          <option value="">Semua Kategori</option>
+        </select>
+      </div>
+
+      <div class="products" id="productGrid" aria-live="polite">
+        <!-- cards di-generate oleh JS -->
+      </div>
+    </section>
+
+    <!-- Cart -->
+    <aside class="cart" aria-labelledby="cart-title">
+      <h2 id="cart-title">Keranjang</h2>
+      <div class="small muted">Items: <span id="cartCount">0</span></div>
+      <div class="cart-list" id="cartList" aria-live="polite" style="margin-top:8px">
+        <!-- items -->
+      </div>
+
+      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="muted">Subtotal</div>
+          <div style="font-weight:700;font-size:18px" id="cartTotal">Rp 0</div>
+        </div>
+        <div style="text-align:right">
+          <div class="small muted">Metode</div>
+          <div class="muted">Transfer / QRIS / Bayar di kasir</div>
+        </div>
+      </div>
+
+      <button class="checkout-btn" id="openCheckout">Checkout & Bayar</button>
+      <div style="margin-top:8px" class="small muted">Setelah checkout, pesanan akan muncul di dashboard kasir untuk diproses dan dicetak struk.</div>
+    </aside>
+
+    <!-- Modal Checkout -->
+    <div class="modal" id="checkoutModal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal-backdrop" id="modalBackdrop"></div>
+      <div class="modal-card" role="document">
+        <h3 style="margin-top:0">Form Checkout</h3>
+        <form id="checkoutForm">
+          <div class="form-row">
+            <div>
+              <label for="buyerName">Nama Pengirim (Keluarga)</label>
+              <input id="buyerName" name="buyerName" required placeholder="Contoh: Ibu Siti">
+            </div>
+            <div>
+              <label for="wbpName">Nama WBP</label>
+              <input id="wbpName" name="wbpName" required placeholder="Contoh: Andi Pratama">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div>
+              <label for="roomNumber">Kamar / Blok</label>
+              <input id="roomNumber" name="roomNumber" required placeholder="Contoh: Blok B-12">
+            </div>
+            <div>
+              <label for="phone">No. HP (opsional)</label>
+              <input id="phone" name="phone" placeholder="0812xxxx (opsional)">
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div>
+              <label for="paymentMethod">Metode Pembayaran</label>
+              <select id="paymentMethod" name="paymentMethod" required>
+                <option value="transfer">Transfer Bank</option>
+                <option value="qris">QRIS</option>
+                <option value="bayar-di-kasir">Bayar di kasir</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row single">
+            <div>
+              <label for="note">Catatan (opsional)</label>
+              <textarea id="note" name="note" rows="3" placeholder="Catatan untuk kasir, mis. jangan bungkus plastik"></textarea>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:6px">
+            <div class="small muted">Total yang dibayar: <strong id="checkoutTotal">Rp 0</strong></div>
+            <div class="modal-actions">
+              <button type="button" class="btn-muted" id="closeModal">Batal</button>
+              <button type="submit" class="btn-primary">Konfirmasi & Buat Pesanan</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Hidden printable receipt -->
+    <div class="receipt printable" id="receiptPrint">
+      <!-- diisi oleh JS -->
+    </div>
+
+  </div>
+
+  <script>
+    /***********************
+     * Sample product data
+     * In production, this akan datang dari server/API
+     ***********************/
+    const products = [
+      { id:1, name:"Sabun Mandi", price:5000, stock:50, category:"Kebutuhan Diri", desc:"Sabun batang 70g" },
+      { id:2, name:"Sikat Gigi", price:7000, stock:30, category:"Kebutuhan Diri", desc:"Sikat gigi medium" },
+      { id:3, name:"Sampo", price:12000, stock:20, category:"Kebutuhan Diri", desc:"Sampo 100ml" },
+      { id:4, name:"Indomie Goreng", price:3500, stock:100, category:"Makanan Ringan", desc:"Mie instan" },
+      { id:5, name:"Biskuit", price:8000, stock:40, category:"Makanan Ringan", desc:"Biskuit 200g" },
+      { id:6, name:"Pulpen", price:3000, stock:60, category:"Alat Tulis", desc:"Pulpen hitam" },
+      { id:7, name:"Kaos Kaki", price:15000, stock:15, category:"Pakaian", desc:"Kaos kaki katun" },
+      { id:8, name:"Masker", price:2000, stock:200, category:"Kebutuhan Diri", desc:"Masker medis" },
+      { id:9, name:"Permen", price:2000, stock:80, category:"Makanan Ringan", desc:"Permen kecil" }
+    ];
+
+    /* state */
+    let cart = [];
+
+    /* utilities */
+    function formatRupiah(n){
+      return 'Rp ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    /* render products */
+    const productGrid = document.getElementById('productGrid');
+    const filterCat = document.getElementById('filter-cat');
+    const search = document.getElementById('search');
+
+    function uniqueCategories(){
+      const s = new Set(products.map(p=>p.category));
+      return [...s];
+    }
+
+    function renderCategories(){
+      const cats = uniqueCategories();
+      cats.forEach(c=>{
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        filterCat.appendChild(opt);
+      });
+    }
+
+    function renderProducts(filterText = '', category = ''){
+  productGrid.innerHTML = '';
+  const term = filterText.trim().toLowerCase();
+  const list = products.filter(p=>{
+    const okTerm = !term || p.name.toLowerCase().includes(term) || p.desc.toLowerCase().includes(term);
+    const okCat = !category || p.category === category;
+    return okTerm && okCat;
+  });
+
+  if(list.length === 0){
+    productGrid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);padding:20px;border-radius:8px;background:#fff;border:1px solid #eef2f7">Produk tidak ditemukan</div>';
+    return;
+  }
+
+  list.forEach(p=>{
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      <div class="thumb" aria-hidden="true">${p.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+      <div class="meta">
+        <h3>${p.name}</h3>
+        <p>${p.desc}</p>
+      </div>
+      <div class="price">${formatRupiah(p.price)}</div>
+      <div class="small muted">Stok: ${p.stock}</div>
+      <button class="add-btn" data-id="${p.id}">Tambah ke Keranjang</button>
+    `;
+    productGrid.appendChild(el);
+  });
+}
+
+
+    /* Cart rendering */
+    const cartList = document.getElementById('cartList');
+    const cartCount = document.getElementById('cartCount');
+    const cartTotalEl = document.getElementById('cartTotal');
+    function updateCartUI(){
+      cartList.innerHTML = '';
+      let total = 0;
+      cart.forEach(item=>{
+        total += item.qty * item.price;
+        const li = document.createElement('div');
+        li.className = 'cart-item';
+        li.innerHTML = `
+          <div class="ci-left">
+            <div style="font-weight:700">${item.name}</div>
+            <div class="small muted">Rp ${item.price.toLocaleString('id-ID')} • Subtotal: <strong>${formatRupiah(item.qty * item.price)}</strong></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <div class="qty" data-id="${item.id}">
+              <button class="dec" title="Kurangi">-</button>
+              <div style="min-width:26px;text-align:center">${item.qty}</div>
+              <button class="inc" title="Tambah">+</button>
+            </div>
+            <button class="btn-muted remove" data-id="${item.id}" style="font-size:12px;padding:6px 8px;border-radius:8px">Hapus</button>
+          </div>
+        `;
+        cartList.appendChild(li);
+      });
+      cartCount.textContent = cart.reduce((s,i)=>s+i.qty,0);
+      cartTotalEl.textContent = formatRupiah(total);
+      document.getElementById('checkoutTotal').textContent = formatRupiah(total);
+    }
+
+    /* add to cart */
+    function addToCart(productId){
+      const p = products.find(x=>x.id===productId);
+      if(!p) return;
+      const existing = cart.find(i=>i.id===p.id);
+      if(existing){
+        if(existing.qty + 1 > p.stock){
+          alert('Stok tidak cukup');
+          return;
+        }
+        existing.qty++;
+      } else {
+        cart.push({ id:p.id, name:p.name, price:p.price, qty:1 });
+      }
+      updateCartUI();
+    }
+
+    /* change qty */
+    cartList.addEventListener('click', (ev)=>{
+      const btn = ev.target;
+      if(btn.classList.contains('inc') || btn.classList.contains('dec') || btn.classList.contains('remove')){
+        const wrapper = btn.closest('.qty') || btn;
+        const id = parseInt(btn.closest('[data-id]').getAttribute('data-id'));
+        const item = cart.find(i=>i.id===id);
+        if(!item) return;
+        const prod = products.find(p=>p.id===id);
+        if(btn.classList.contains('inc')){
+          if(item.qty + 1 > prod.stock){ alert('Stok tidak cukup'); return; }
+          item.qty++;
+        } else if(btn.classList.contains('dec')){
+          item.qty = Math.max(1, item.qty - 1);
+        } else if(btn.classList.contains('remove')){
+          cart = cart.filter(i=>i.id !== id);
+        }
+        updateCartUI();
+      }
+    });
+
+    /* add button handler */
+    productGrid.addEventListener('click', (ev)=>{
+      const btn = ev.target.closest('.add-btn');
+      if(!btn) return;
+      const id = parseInt(btn.dataset.id,10);
+      addToCart(id);
+    });
+
+    /* search & filter */
+    search.addEventListener('input', ()=> renderProducts(search.value, filterCat.value));
+    filterCat.addEventListener('change', ()=> renderProducts(search.value, filterCat.value));
+
+    /* checkout modal */
+    const openCheckout = document.getElementById('openCheckout');
+    const modal = document.getElementById('checkoutModal');
+    const closeModal = document.getElementById('closeModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+
+    function showModal(){
+      if(cart.length === 0){ alert('Keranjang kosong'); return; }
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+    }
+    function hideModal(){
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+    }
+    openCheckout.addEventListener('click', showModal);
+    closeModal.addEventListener('click', hideModal);
+    modalBackdrop.addEventListener('click', hideModal);
+
+    /* submit checkout form -> simulate order creation and show printable receipt */
+    const checkoutForm = document.getElementById('checkoutForm');
+    const receiptPrint = document.getElementById('receiptPrint');
+
+    checkoutForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const buyerName = document.getElementById('buyerName').value.trim();
+      const wbpName = document.getElementById('wbpName').value.trim();
+      const roomNumber = document.getElementById('roomNumber').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const paymentMethod = document.getElementById('paymentMethod').value;
+      const note = document.getElementById('note').value.trim();
+
+      // build order object
+      const order = {
+        id: 'ORD' + Date.now(),
+        buyerName, wbpName, roomNumber, phone, paymentMethod, note,
+        items: cart.map(i=>({ name:i.name, price:i.price, qty:i.qty })),
+        createdAt: new Date()
+      };
+      order.total = order.items.reduce((s,i)=>s + i.qty * i.price, 0);
+
+      // In production: kirim order ke server via fetch/ajax.
+      // Here: kita simulasi sukses -> clear cart & tampilkan struk printable
+      hideModal();
+
+      // prepare receipt HTML
+      const d = new Date(order.createdAt);
+      const dateStr = d.toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'});
+      const itemsHtml = order.items.map(it=>`<div style="display:flex;justify-content:space-between"><div>${it.qty}x ${it.name}</div><div>${formatRupiah(it.qty * it.price)}</div></div>`).join('');
+      receiptPrint.innerHTML = `
+        <h3>KOPERASI RUTAN</h3>
+        <div style="text-align:center;font-size:12px;color:var(--muted)">${dateStr}</div>
+        <div class="line"></div>
+        <div><strong>Untuk WBP:</strong> ${order.wbpName}</div>
+        <div><strong>Kamar:</strong> ${order.roomNumber}</div>
+        <div><strong>Dari:</strong> ${order.buyerName}</div>
+        <div class="line"></div>
+        <div class="items">${itemsHtml}</div>
+        <div class="line"></div>
+        <div style="display:flex;justify-content:space-between"><div><strong>Total</strong></div><div><strong>${formatRupiah(order.total)}</strong></div></div>
+        <div style="margin-top:8px;font-size:12px">Metode: ${paymentMethod.replace('-', ' ')}</div>
+        ${ note ? `<div style="margin-top:6px;font-size:12px">Catatan: ${note}</div>` : '' }
+        <div class="line"></div>
+        <div class="foot">Bukti pembelian — tunjukkan ke kasir untuk verifikasi & ambil barang</div>
+      `;
+
+      // print
+      setTimeout(()=>{
+        window.print();
+      }, 250);
+
+      // clear cart & form
+      cart = [];
+      updateCartUI();
+      checkoutForm.reset();
+    });
+
+    /* initial render */
+    renderCategories();
+    renderProducts();
+    updateCartUI();
+
+    /* keyboard accessibility: Esc untuk close modal */
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape') hideModal();
+    });
+
+    // small: support adding from URL param ?add=3
+    const params = new URLSearchParams(location.search);
+    if(params.has('add')){
+      const id = parseInt(params.get('add'),10);
+      if(!isNaN(id)) addToCart(id);
+    }
+  </script>
+</body>
+</html>

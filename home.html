@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koperasi Rutan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #0a58ca;
+      --secondary: #004aad;
+      --light: #f5f7fb;
+      --dark: #222;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Poppins", sans-serif;
+    }
+
+    body {
+      background-color: var(--light);
+      color: var(--dark);
+    }
+
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 5%;
+      background-color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    nav .logo {
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: var(--primary);
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2rem;
+    }
+
+    nav ul li a {
+      text-decoration: none;
+      color: var(--dark);
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    nav ul li a:hover {
+      color: var(--primary);
+    }
+
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4rem 5%;
+      background: linear-gradient(135deg, #e8f0ff, #ffffff);
+      min-height: 85vh;
+    }
+
+    .hero-content {
+      flex: 1;
+      min-width: 300px;
+      padding-right: 2rem;
+    }
+
+    .hero-content h1 {
+      font-size: 2.5rem;
+      color: var(--secondary);
+      line-height: 1.3;
+      margin-bottom: 1rem;
+    }
+
+    .hero-content p {
+      color: #555;
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 0.8rem 1.6rem;
+      background-color: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background-color: #004aad;
+    }
+
+    .hero-image {
+      flex: 1;
+      text-align: center;
+      min-width: 300px;
+    }
+
+    .hero-image img {
+      width: 90%;
+      max-width: 450px;
+      border-radius: 16px;
+    }
+
+    /* Location Section */
+    .location {
+      padding: 3rem 5%;
+      background: #fff;
+      text-align: center;
+    }
+
+    .location h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      color: var(--secondary);
+    }
+
+    .location .icon {
+      width: 30px;
+      height: 30px;
+      vertical-align: middle;
+      margin-right: 8px;
+      fill: var(--primary);
+    }
+
+    .location p {
+      font-size: 1rem;
+      color: #444;
+    }
+
+    footer {
+      background-color: var(--secondary);
+      color: #fff;
+      text-align: center;
+      padding: 1.2rem;
+      font-size: 0.9rem;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">TabeOM</div>
+    <ul>
+      <li><a href="#buat-pesanan">Buat Pesanan</a></li>
+      <li><a href="#cek-pesanan">Cek Pesanan</a></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Bantu Keluarga WBP Lebih Mudah</h1>
+      <p>
+        Melalui website Koperasi Rutan, Anda dapat dengan mudah membelikan
+        kebutuhan untuk keluarga WBP tanpa harus datang langsung. Pesan barang,
+        lakukan pembayaran online, dan koperasi akan menyerahkan barang langsung
+        ke penerima beserta bukti pembelian.
+      </p>
+      <a href="#buat-pesanan" class="btn">Mulai Pesan Sekarang</a>
+    </div>
+    <div class="hero-image">
+      <img src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=900&q=80" alt="Koperasi Rutan" />
+    </div>
+  </section>
+
+  <section class="location">
+    <h2>
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path
+          d="M12 2C8.14 2 5 5.14 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.86-3.14-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"
+        />
+      </svg>
+      Lokasi Koperasi
+    </h2>
+    <p>Rutan Kelas IIB Bantaeng, Jalan Mawar No. 9, Kelurahan Pallantikan, Kecamatan Bantaeng, Kabupaten Bantaeng</p>
+  </section>
+
+  <footer>
+    © 2025 Koperasi Rutan. All Rights Reserved.
+  </footer>
+</body>
+</html>
