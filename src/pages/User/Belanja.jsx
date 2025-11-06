@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react"
+import { ShoppingCart, Trash2, Minus, Plus } from "lucide-react"
 
 const KoperasiBelanja = () => {
   const [products, setProducts] = useState([])
@@ -159,73 +160,125 @@ const KoperasiBelanja = () => {
           </div>
         </section>
 
-        {/* 🛒 Keranjang */}
-        <section className="bg-white rounded-xl p-5 shadow-lg">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Keranjang Belanja
-          </h2>
+        {/* 🛒 Keranjang Modern */}
+<section className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 mt-8">
+  <div className="flex items-center gap-2 mb-5">
+    <ShoppingCart size={20} className="text-blue-600" />
+    <h2 className="text-xl font-semibold text-gray-900">
+      Keranjang Belanja
+    </h2>
+  </div>
 
-          {cart.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">
-              Keranjang masih kosong
-            </p>
-          ) : (
-            <>
-              <ul className="divide-y divide-gray-200">
-                {cart.map((item) => (
-                  <li
-                    key={item.id}
-                    className="py-3 flex justify-between items-center"
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Tampilkan foto kecil di keranjang */}
-                      {item.image && (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-12 h-12 object-cover rounded-md"
-                        />
-                      )}
-                      <div>
-                        <h4 className="font-medium text-gray-800">
-                          {item.name}
-                        </h4>
-                        <p className="text-sm text-gray-500">
-                          {formatRupiah(item.price)} x {item.qty}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => decreaseQty(item.id)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 rounded"
-                      >
-                        -
-                      </button>
-                      <span className="font-semibold">{item.qty}</span>
-                      <button
-                        onClick={() => addToCart(item.id)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 rounded"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="ml-3 text-red-600 hover:text-red-800 font-medium"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="border-t border-gray-200 mt-4 pt-4 text-right font-semibold text-blue-700">
-                Total: {formatRupiah(totalHarga)}
+  {cart.length === 0 ? (
+    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+      <img
+        src="https://cdn-icons-png.flaticon.com/512/11329/11329060.png"
+        alt="Empty cart"
+        className="w-32 mb-4 opacity-70"
+      />
+      <p>Keranjang masih kosong</p>
+    </div>
+  ) : (
+    <>
+      <ul className="divide-y divide-gray-100">
+        {cart.map((item) => (
+          <li
+            key={item.id}
+            className="py-4 flex flex-col sm:flex-row justify-between items-center gap-4 hover:bg-gray-50 rounded-xl transition-all px-2"
+          >
+            {/* Info Produk */}
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              {item.image && (
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                />
+              )}
+              <div>
+                <h4 className="font-medium text-gray-800 text-base">
+                  {item.name}
+                </h4>
+                <p className="text-sm text-gray-500">
+                  {formatRupiah(item.price)}
+                </p>
               </div>
-            </>
-          )}
-        </section>
+            </div>
+
+            {/* Tombol Qty dan Aksi */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-gray-100 rounded-full px-3 py-1.5 shadow-inner">
+                <button
+                  onClick={() => decreaseQty(item.id)}
+                  className="p-1 hover:bg-gray-200 rounded-full transition"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4 text-gray-700"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" />
+                  </svg>
+                </button>
+                <span className="px-3 font-semibold text-gray-800 min-w-[24px] text-center">
+                  {item.qty}
+                </span>
+                <button
+                  onClick={() => addToCart(item.id)}
+                  className="p-1 hover:bg-gray-200 rounded-full transition"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-4 h-4 text-gray-700"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+                  </svg>
+                </button>
+              </div>
+
+              <button
+                onClick={() => removeFromCart(item.id)}
+                className="text-red-500 hover:text-red-600 transition p-1.5"
+                title="Hapus dari keranjang"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.343.052.682.108 1.02.168m-1.02-.168L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .565c.337-.06.677-.116 1.02-.168m0 0L4.772 5.79m0 0L5.84 19.673A2.25 2.25 0 008.084 21.75h7.832a2.25 2.25 0 002.244-2.077L19.228 5.79m-12-.565V4.5c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v.725m-7.5 0h7.5"
+                  />
+                </svg>
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Total Belanja */}
+      <div className="border-t border-gray-200 mt-6 pt-4 flex flex-col sm:flex-row justify-between items-center">
+        <div className="text-lg font-semibold text-gray-800">
+          Total:{" "}
+          <span className="text-green-700">{formatRupiah(totalHarga)}</span>
+        </div>
+      </div>
+    </>
+  )}
+</section>
+
       </div>
     </div>
   )

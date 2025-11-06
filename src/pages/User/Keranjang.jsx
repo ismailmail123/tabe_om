@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ShoppingCart } from "lucide-react"
+import { ShoppingCart, Trash2, Minus, Plus } from "lucide-react"
 
 export default function Keranjang() {
   const [cart, setCart] = useState([])
@@ -46,16 +46,17 @@ export default function Keranjang() {
 
   if (cart.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-gray-600 font-['Poppins']">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 text-gray-700 font-['Poppins']">
         <img
           src="https://cdn-icons-png.flaticon.com/512/11329/11329060.png"
           alt="Empty cart"
-          className="w-40 mb-4 opacity-80"
+          className="w-44 mb-6 opacity-80"
         />
-        <h2 className="text-xl font-semibold">Keranjangmu masih kosong!</h2>
+        <h2 className="text-2xl font-semibold mb-2">Keranjangmu masih kosong!</h2>
+        <p className="text-gray-500 mb-5">Ayo belanja dan temukan produk terbaik!</p>
         <button
           onClick={() => navigate("/user/belanja")}
-          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md transition"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg shadow-md transition transform hover:scale-[1.02]"
         >
           Belanja Sekarang
         </button>
@@ -64,68 +65,85 @@ export default function Keranjang() {
   }
 
   return (
-    <div className="p-6 font-['Poppins'] min-h-screen bg-gray-50">
-      <div className="flex items-center gap-2 mb-6">
-        <ShoppingCart size={28} className="text-blue-600" />
-        <h2 className="text-2xl font-semibold text-gray-800">Keranjang Belanja</h2>
+    <div className="p-6 font-['Poppins'] min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className="bg-blue-100 p-2 rounded-lg">
+          <ShoppingCart size={26} className="text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-semibold text-gray-800 tracking-tight">
+          Keranjang Belanja
+        </h2>
       </div>
 
-      <div className="grid gap-4">
+      {/* List Produk */}
+      <div className="space-y-4">
         {cart.map((item) => (
           <div
             key={item.id}
-            className="flex items-center bg-white shadow-md rounded-xl p-4 transition hover:shadow-lg"
+            className="flex items-center bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition border border-gray-100"
           >
             <img
-              src={item.image || "https://via.placeholder.com/80"}
+              src={item.image || "https://via.placeholder.com/100"}
               alt={item.name}
-              className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+              className="w-20 h-20 object-cover rounded-xl border border-gray-200"
             />
 
             <div className="ml-4 flex-1">
-              <h3 className="font-semibold text-gray-800 text-lg">
+              <h3 className="font-semibold text-gray-800 text-lg leading-tight">
                 {item.name}
               </h3>
               <p className="text-blue-600 font-medium">
                 {formatRupiah(item.price)}
               </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Subtotal:{" "}
+                <span className="font-medium text-gray-700">
+                  {formatRupiah(item.price * item.qty)}
+                </span>
+              </p>
             </div>
 
-            <div className="flex items-center space-x-2">
+            {/* Tombol Qty */}
+            <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-2 py-1">
               <button
                 onClick={() => handleReduce(item.id)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-md font-bold"
+                className="p-1 rounded-md hover:bg-gray-200 transition"
               >
-                -
+                <Minus size={16} />
               </button>
               <span className="text-gray-800 font-semibold w-6 text-center">
                 {item.qty}
               </span>
               <button
                 onClick={() => handleAdd(item.id)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md font-bold"
+                className="p-1 rounded-md hover:bg-gray-200 transition"
               >
-                +
+                <Plus size={16} />
               </button>
             </div>
 
+            {/* Tombol Hapus */}
             <button
               onClick={() => handleDelete(item.id)}
-              className="ml-4 text-red-500 hover:text-red-600 font-semibold"
+              className="ml-4 text-red-500 hover:text-red-600 transition p-2"
+              title="Hapus item"
             >
-              Hapus
+              <Trash2 size={20} />
             </button>
           </div>
         ))}
       </div>
 
-      <div className="mt-8 flex justify-between items-center bg-white p-4 rounded-xl shadow-md">
-        <div className="text-lg font-semibold text-gray-800">
-          Total: <span className="text-blue-700">{formatRupiah(total)}</span>
+      {/* Total & Checkout */}
+      <div className="mt-10 flex flex-col sm:flex-row justify-between items-center bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+        <div className="text-xl font-semibold text-gray-800 mb-4 sm:mb-0">
+          Total:{" "}
+          <span className="text-blue-700">{formatRupiah(total)}</span>
         </div>
         <button
           onClick={() => navigate("/user/pembayaran")}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition"
+          className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium shadow-md transition transform hover:scale-[1.02]"
         >
           Lanjut ke Pembayaran
         </button>

@@ -8,6 +8,7 @@ export default function Pembayaran() {
     nama: "",
     blok: "",
     nomorRegister: "",
+    namaPengirim: "",
     catatan: "",
   })
   const navigate = useNavigate()
@@ -31,26 +32,20 @@ export default function Pembayaran() {
       nama: form.nama,
       blok: form.blok,
       nomorRegister: form.nomorRegister,
+      namaPengirim: form.namaPengirim,
       catatan: form.catatan,
       items: cart,
       total: total,
       status: "Menunggu Konfirmasi",
     }
 
-    // Ambil data transaksi lama
     const existingTransactions =
       JSON.parse(localStorage.getItem("transactions")) || []
 
-    // Tambahkan transaksi baru
     existingTransactions.push(newTransaction)
-
-    // Simpan ke localStorage
     localStorage.setItem("transactions", JSON.stringify(existingTransactions))
-
-    // Kosongkan keranjang
     localStorage.removeItem("cart")
 
-    // Redirect ke halaman history
     navigate("/user/history")
   }
 
@@ -112,6 +107,24 @@ export default function Pembayaran() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
               />
             </div>
+          </div>
+
+          {/* 🆕 Tambahan: Nama Pengirim */}
+          <div>
+            <label className="block text-gray-700 font-medium mb-2">
+              Nama Pengirim
+            </label>
+            <input
+              type="text"
+              name="namaPengirim"
+              value={form.namaPengirim}
+              onChange={(e) =>
+                setForm({ ...form, namaPengirim: e.target.value })
+              }
+              required
+              placeholder="Masukkan nama pengirim pembayaran"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+            />
           </div>
 
           <div>
