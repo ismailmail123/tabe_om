@@ -1,10 +1,13 @@
+import React from "react";
+import { BrowserRouter } from "react-router-dom";
+import RoutesIndex from "./routes";
 
-import Routers from "./routes";
-
-const App = () => {
-  return (      
-      <Routers />  
+function App() {
+  return (
+    <BrowserRouter>
+      <RoutesIndex />
+    </BrowserRouter>
   );
-};
+}
 
 export default App;
