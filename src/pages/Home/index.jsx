@@ -10,15 +10,20 @@ const KoperasiRutan = () => {
       <nav className="sticky top-0 z-10 bg-white shadow-sm py-4 px-4 md:px-20 flex justify-between items-center">
         <div
           onClick={() => navigate('/')}
-          className="font-bold text-xl text-blue-700 cursor-pointer select-none"
+          className="flex items-center space-x-3 cursor-pointer select-none"
         >
-          TabeOM
+          {/* 🏛️ Logo Kemenkumham */}
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/0/00/Logo_Kementrian_Imigrasi_dan_Pemasyarakatan_%282024%29.png"
+            alt="Logo Kemenkumham"
+            className="w-10 h-10 object-contain"
+          />
+          <span className="font-bold text-xl text-blue-700">TabeOM</span>
         </div>
+
         <ul className="flex space-x-6 items-center">
-          <li>
-          </li>
-          <li>
-          </li>
+          <li></li>
+          <li></li>
           <li>
             <button
               onClick={() => navigate('/login')}

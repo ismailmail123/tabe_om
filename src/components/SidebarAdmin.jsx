@@ -1,8 +1,15 @@
-// src/components/SidebarAdmin.jsx
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { logout } from "../utils/auth"
-import { Menu, X, LogOut, LayoutDashboard, Package, ShoppingCart } from "lucide-react"
+import {
+  Menu,
+  X,
+  LogOut,
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Bell,
+} from "lucide-react"
 
 export default function SidebarAdmin() {
   const navigate = useNavigate()
@@ -10,6 +17,19 @@ export default function SidebarAdmin() {
   const username = admin?.username || "Admin"
 
   const [open, setOpen] = useState(true)
+  const [hasNewTransaction, setHasNewTransaction] = useState(false)
+
+  // Cek apakah ada transaksi baru
+  useEffect(() => {
+    const checkTransaction = () => {
+      const notif = JSON.parse(localStorage.getItem("notifTransaksi")) || false
+      setHasNewTransaction(notif)
+    }
+
+    checkTransaction()
+    window.addEventListener("storage", checkTransaction)
+    return () => window.removeEventListener("storage", checkTransaction)
+  }, [])
 
   const handleLogout = () => {
     logout()
@@ -18,13 +38,11 @@ export default function SidebarAdmin() {
 
   return (
     <div className="flex">
-      {/* Sidebar Admin */}
       <aside
         className={`${
           open ? "w-64" : "w-20"
         } bg-[#0e2238] text-white min-h-screen flex flex-col justify-between transition-all duration-300 shadow-xl`}
       >
-        {/* Header */}
         <div>
           <div className="flex items-center justify-between p-4 border-b border-[#14314d]">
             <h2
@@ -42,7 +60,6 @@ export default function SidebarAdmin() {
             </button>
           </div>
 
-          {/* Admin Info */}
           <div
             className={`p-4 border-b border-[#14314d] text-sm transition-all duration-300 ${
               !open && "opacity-0 hidden"
@@ -51,7 +68,6 @@ export default function SidebarAdmin() {
             Hai, <span className="font-medium text-blue-200">{username}</span>
           </div>
 
-          {/* Nav Links */}
           <nav className="flex flex-col mt-4 space-y-1">
             <NavLink
               to="/dashboard/home"
@@ -84,20 +100,34 @@ export default function SidebarAdmin() {
             <NavLink
               to="/dashboard/transaksi"
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md mx-2 text-sm transition ${
+                `flex items-center gap-3 px-4 py-2 rounded-md mx-2 text-sm relative transition ${
                   isActive
                     ? "bg-blue-600"
                     : "hover:bg-[#14314d] text-blue-100 hover:text-white"
                 }`
               }
+              onClick={() => {
+                // Reset notif saat admin buka halaman transaksi
+                localStorage.setItem("notifTransaksi", false)
+                setHasNewTransaction(false)
+              }}
             >
               <ShoppingCart size={20} />
               {open && <span>Transaksi</span>}
+
+              {/* 🔔 Notif Indicator */}
+              {hasNewTransaction && (
+                <span className="absolute right-4 top-2">
+                  <span className="flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                </span>
+              )}
             </NavLink>
           </nav>
         </div>
 
-        {/* Footer (Logout) */}
         <div className="p-4 border-t border-[#14314d]">
           <button
             onClick={handleLogout}

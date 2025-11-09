@@ -26,6 +26,7 @@ export default function Pembayaran() {
   const handleSubmit = (e) => {
     e.preventDefault()
 
+    // data transaksi baru
     const newTransaction = {
       id: Date.now(),
       date: new Date().toLocaleString("id-ID"),
@@ -35,17 +36,35 @@ export default function Pembayaran() {
       namaPengirim: form.namaPengirim,
       catatan: form.catatan,
       items: cart,
-      total: total,
+      total,
       status: "Menunggu Konfirmasi",
     }
 
+    // Simpan ke localStorage untuk user
     const existingTransactions =
       JSON.parse(localStorage.getItem("transactions")) || []
-
     existingTransactions.push(newTransaction)
     localStorage.setItem("transactions", JSON.stringify(existingTransactions))
+
+    // Setelah transaksi sukses disimpan
+localStorage.setItem("notifTransaksi", true)
+
+
+    // 🔔 Tambahkan juga notifikasi untuk admin
+    const adminNotifs = JSON.parse(localStorage.getItem("adminNotifications")) || []
+    adminNotifs.push({
+      id: newTransaction.id,
+      message: `Transaksi baru dari ${form.nama} (${form.namaPengirim}) - Total ${formatRupiah(total)}`,
+      time: newTransaction.date,
+      read: false,
+      data: newTransaction,
+    })
+    localStorage.setItem("adminNotifications", JSON.stringify(adminNotifs))
+
+    // Hapus keranjang setelah konfirmasi
     localStorage.removeItem("cart")
 
+    alert("✅ Pembayaran berhasil dikonfirmasi! Menunggu verifikasi admin.")
     navigate("/user/history")
   }
 
@@ -60,6 +79,7 @@ export default function Pembayaran() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Input Nama WBP */}
           <div>
             <label className="block text-gray-700 font-medium mb-2">
               Nama WBP
@@ -71,10 +91,11 @@ export default function Pembayaran() {
               onChange={(e) => setForm({ ...form, nama: e.target.value })}
               required
               placeholder="Masukkan nama lengkap WBP"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
             />
           </div>
 
+          {/* Input Blok dan Register */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-gray-700 font-medium mb-2">
@@ -87,7 +108,7 @@ export default function Pembayaran() {
                 onChange={(e) => setForm({ ...form, blok: e.target.value })}
                 required
                 placeholder="Contoh: Blok A-2"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
               />
             </div>
 
@@ -104,12 +125,12 @@ export default function Pembayaran() {
                 }
                 required
                 placeholder="Masukkan nomor register WBP"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
               />
             </div>
           </div>
 
-          {/* 🆕 Tambahan: Nama Pengirim */}
+          {/* Nama Pengirim */}
           <div>
             <label className="block text-gray-700 font-medium mb-2">
               Nama Pengirim
@@ -123,10 +144,11 @@ export default function Pembayaran() {
               }
               required
               placeholder="Masukkan nama pengirim pembayaran"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
             />
           </div>
 
+          {/* Catatan */}
           <div>
             <label className="block text-gray-700 font-medium mb-2">
               Catatan Tambahan
@@ -137,11 +159,11 @@ export default function Pembayaran() {
               onChange={(e) => setForm({ ...form, catatan: e.target.value })}
               rows="3"
               placeholder="Tulis catatan tambahan (opsional)"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
             ></textarea>
           </div>
 
-          {/* RINGKASAN PEMBELIAN */}
+          {/* Ringkasan Pembelian */}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Ringkasan Pembelian
@@ -166,6 +188,7 @@ export default function Pembayaran() {
             </div>
           </div>
 
+          {/* Tombol Submit */}
           <div className="pt-6 flex justify-end">
             <button
               type="submit"
