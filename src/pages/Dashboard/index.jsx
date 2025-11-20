@@ -1,15 +1,16 @@
 import React, { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { isLoggedIn, getRole, logout } from "../../utils/auth"
+// import { isLoggedIn, getRole, logout } from "../../utils/auth"
 
 export default function Admin() {
   const navigate = useNavigate()
+  const authUser = JSON.parse(localStorage.getItem("authUser"))
 
-  useEffect(() => {
-    if (!isLoggedIn() || getRole() !== "admin") {
-      navigate("/login")
-    }
-  }, [])
+  // useEffect(() => {
+  //   if (!authUser || authUser.user.role !== "admin") {
+  //     navigate("/dashboard")
+  //   }
+  // }, [])
 
   return (
     <div className="p-6">

@@ -10,7 +10,7 @@ export default function AdminLayout() {
       <SidebarAdmin />
 
       {/* Konten utama */}
-      <main className="flex-1 p-6 md:p-8">
+      <main className="flex-1 p-1 md:p-1">
         <Outlet /> {/* tempat render isi halaman admin */}
       </main>
     </div>

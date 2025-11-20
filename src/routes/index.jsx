@@ -21,11 +21,14 @@ import { isLoggedIn, getRole } from "../utils/auth"
 
 // 🔐 Proteksi halaman sesuai role
 const ProtectedRoute = ({ children, role }) => {
+  console.log("ProtectedRoute check for role:", role)
   if (!isLoggedIn() || getRole() !== role) {
     return <Navigate to="/login" replace />
   }
   return children
 }
+
+
 
 const RoutesIndex = () => {
   return (

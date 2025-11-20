@@ -180,7 +180,7 @@ export default function Transaksi() {
 
   return (
     <div className="flex min-h-screen bg-gray-100 font-['Poppins']">
-      <main className="flex-1 p-8 relative">
+      <main className="flex-1 p-1 relative">
         <h1 className="text-2xl font-bold mb-6 text-gray-800">
           Daftar Transaksi Pengguna
         </h1>
