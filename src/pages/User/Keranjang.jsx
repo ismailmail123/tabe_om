@@ -4,6 +4,7 @@ import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft, CreditCard } from "lucide
 import { Checkbox } from "../../components/ui/checkbox";
 import useAuthStore from "../../stores/useAuthStore";
 import useCartStore from "../../stores/useCartStore";
+import useOrderStore from "../../stores/useOrderStore"; // Import useOrderStore
 import toast, { Toaster } from "react-hot-toast";
 
 const CartItem = ({
@@ -16,7 +17,6 @@ const CartItem = ({
   navigate,
   onOutOfStockClick,
 }) => {
-  // ... (kode CartItem tetap sama seperti sebelumnya)
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -214,7 +214,7 @@ const CartItem = ({
   );
 };
 
-// Komponen Pembayaran yang sudah diintegrasikan
+// Komponen Pembayaran yang sudah diintegrasikan dengan useOrderStore
 const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
   const [form, setForm] = useState({
     nama: "",
@@ -223,68 +223,70 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
     namaPengirim: "",
     catatan: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { createOrder } = useOrderStore();
+  const { removeCartItem, clearSelectedCart } = useCartStore();
 
   const formatRupiah = (n) =>
     "Rp " + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
   const total = cartItems.reduce((sum, item) => sum + item.variant?.price * item.quantity, 0);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // Transform cart items to match the expected format
-    const transformedItems = cartItems.map(item => ({
-      id: item.variant?.id,
-      name: item.variant?.name,
-      price: item.variant?.price,
-      qty: item.quantity,
-      img_url: item.variant?.img_url
-    }));
+    try {
+      // Prepare data for order creation
+      const orderData = {
+        items: cartItems.map(item => ({
+          variant_id: item.variant?.id,
+          quantity: item.quantity
+        })),
+        payment_method: "transfer", // Default payment method
+        wbp_name: form.nama,
+        wbp_room: form.blok,
+        wbp_register_number: form.nomorRegister,
+        wbp_sender: form.namaPengirim,
+        note: form.catatan
+      };
 
-    // data transaksi baru
-    const newTransaction = {
-      id: Date.now(),
-      date: new Date().toLocaleString("id-ID"),
-      nama: form.nama,
-      blok: form.blok,
-      nomorRegister: form.nomorRegister,
-      namaPengirim: form.namaPengirim,
-      catatan: form.catatan,
-      items: transformedItems,
-      total,
-      status: "Menunggu Konfirmasi",
-    };
+      // Create order using useOrderStore
+      const result = await createOrder(orderData);
 
-    // Simpan ke localStorage untuk user
-    const existingTransactions = JSON.parse(localStorage.getItem("transactions")) || [];
-    existingTransactions.push(newTransaction);
-    localStorage.setItem("transactions", JSON.stringify(existingTransactions));
+      if (result.status === 'success') {
+        // Remove ordered items from cart
+        cartItems.forEach(item => {
+          removeCartItem(item.id);
+        });
+        clearSelectedCart();
 
-    // Setelah transaksi sukses disimpan
-    localStorage.setItem("notifTransaksi", "true");
+        // Set notification for new transaction
+        localStorage.setItem("notifTransaksi", "true");
 
-    // 🔔 Tambahkan juga notifikasi untuk admin
-    const adminNotifs = JSON.parse(localStorage.getItem("adminNotifications")) || [];
-    adminNotifs.push({
-      id: newTransaction.id,
-      message: `Transaksi baru dari ${form.nama} (${form.namaPengirim}) - Total ${formatRupiah(total)}`,
-      time: newTransaction.date,
-      read: false,
-      data: newTransaction,
-    });
-    localStorage.setItem("adminNotifications", JSON.stringify(adminNotifs));
+        // Add notification for admin
+        const adminNotifs = JSON.parse(localStorage.getItem("adminNotifications")) || [];
+        adminNotifs.push({
+          id: result.data.data.order_id,
+          message: `Transaksi baru dari ${form.nama} (${form.namaPengirim}) - Total ${formatRupiah(total)}`,
+          time: new Date().toLocaleString("id-ID"),
+          read: false,
+          data: result.data.data,
+        });
+        localStorage.setItem("adminNotifications", JSON.stringify(adminNotifs));
 
-    // Hapus item yang sudah di-checkout dari cart
-    const cartStore = useCartStore.getState();
-    cartItems.forEach(item => {
-      cartStore.removeCartItem(item.id);
-    });
-    cartStore.clearSelectedCart();
-
-    alert("✅ Pembayaran berhasil dikonfirmasi! Menunggu verifikasi admin.");
-    
-    if (onSuccess) {
-      onSuccess();
+        toast.success("✅ Pembayaran berhasil dikonfirmasi! Menunggu verifikasi admin.");
+        
+        if (onSuccess) {
+          onSuccess();
+        }
+      }
+    } catch (error) {
+      console.error("Order creation error:", error);
+      // Error message is already handled in useOrderStore
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -295,6 +297,7 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
           <button
             onClick={onBack}
             className="bg-none border-none cursor-pointer p-0 mr-2"
+            disabled={isSubmitting}
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
@@ -318,6 +321,7 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
               required
               placeholder="Masukkan nama lengkap WBP"
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
+              disabled={isSubmitting}
             />
           </div>
 
@@ -335,6 +339,7 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
                 required
                 placeholder="Contoh: Blok A-2"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -352,6 +357,7 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
                 required
                 placeholder="Masukkan nomor register WBP"
                 className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -371,6 +377,7 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
               required
               placeholder="Masukkan nama pengirim pembayaran"
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
+              disabled={isSubmitting}
             />
           </div>
 
@@ -386,6 +393,7 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
               rows="3"
               placeholder="Tulis catatan tambahan (opsional)"
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
+              disabled={isSubmitting}
             ></textarea>
           </div>
 
@@ -418,9 +426,12 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
           <div className="pt-6 flex justify-end">
             <button
               type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-medium transition"
+              disabled={isSubmitting}
+              className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-medium transition ${
+                isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
-              Konfirmasi Pembayaran
+              {isSubmitting ? "Memproses..." : "Konfirmasi Pembayaran"}
             </button>
           </div>
         </form>
@@ -435,7 +446,7 @@ const Keranjang = () => {
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.authUser);
   
-  // Use Zustand store
+  // Use Zustand stores
   const {
     cartItems,
     selectedCart,
@@ -454,12 +465,12 @@ const Keranjang = () => {
 
   console.log("Cart Items:", cartItems);
 
-  // Perbaikan: Gunakan 'nama' bukan 'name'
+  // Group items by seller
   const groupedItems = cartItems?.reduce((acc, item) => {
     const sellerId = item.variant?.product?.user_id;
     if (!acc[sellerId]) {
       acc[sellerId] = {
-        sellerName: item.variant?.product?.user?.nama, // Diperbaiki: 'nama' bukan 'name'
+        sellerName: item.variant?.product?.user?.nama,
         items: [],
         subtotal: 0,
       };
@@ -604,7 +615,6 @@ const Keranjang = () => {
             (item) => item.variant?.stock > 0 && !item.variant?.is_delete
           );
           
-          // Perbaikan: Pastikan perhitungan allAvailableSelected benar
           const allAvailableSelected = availableItems.length > 0 &&
             availableItems.every((item) =>
               selectedCart.some((selected) => selected.id === item.id)

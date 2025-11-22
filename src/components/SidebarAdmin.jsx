@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Bell,
 } from "lucide-react"
 
 export default function SidebarAdmin() {

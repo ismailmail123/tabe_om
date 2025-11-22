@@ -1,17 +1,46 @@
 import React, { useEffect, useState } from "react"
 import { Clock, Info, X, Image as ImageIcon } from "lucide-react"
+import useOrderStore from "../../stores/useOrderStore" // Import store order
 
 export default function History() {
-  const [transactions, setTransactions] = useState([])
   const [selected, setSelected] = useState(null)
+  const [activeTab, setActiveTab] = useState("all") // State untuk tab aktif
+  
+  // Ambil data dari store order
+  const { orders, fetchOrder } = useOrderStore()
+  
+  // Mapping status untuk tampilan
+  const statusMap = {
+    'pending': 'Menunggu',
+    'process': 'Dikonfirmasi', 
+    'completed': 'Selesai',
+    'cancelled': 'Dibatalkan'
+  }
+
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("transactions")) || []
-    setTransactions(data)
-  }, [])
+    fetchOrder() // Fetch data order saat komponen mount
+  }, [fetchOrder])
+
+  console.log("Orders selected:", selected)
+
+  // Filter orders berdasarkan tab aktif
+  const filteredOrders = orders?.filter(order => {
+    if (activeTab === "all") return true
+    return order.status === activeTab
+  }) || []
 
   const formatRupiah = (n) =>
     "Rp " + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+
+  // Tabs untuk filter status
+  const tabs = [
+    { id: "all", label: "Semua" },
+    { id: "pending", label: "Menunggu" },
+    { id: "process", label: "Dikonfirmasi" },
+    { id: "completed", label: "Selesai" },
+    { id: "cancelled", label: "Dibatalkan" }
+  ]
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen font-['Poppins']">
@@ -23,8 +52,27 @@ export default function History() {
         </h2>
       </div>
 
+      {/* Tabs Filter */}
+      <div className="bg-white rounded-lg shadow mb-6">
+        <div className="flex border-b">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-3 px-4 text-sm font-medium text-center transition-colors ${
+                activeTab === tab.id
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Jika belum ada transaksi */}
-      {transactions.length === 0 ? (
+      {filteredOrders.length === 0 ? (
         <div className="bg-white p-6 rounded-lg shadow text-center text-gray-500">
           <img
             src="https://cdn-icons-png.flaticon.com/512/7466/7466149.png"
@@ -32,7 +80,10 @@ export default function History() {
             className="w-24 mx-auto mb-3 opacity-80"
           />
           <p className="text-gray-600 font-medium">
-            Belum ada riwayat transaksi 💸
+            {activeTab === "all" 
+              ? "Belum ada riwayat transaksi 💸" 
+              : `Tidak ada transaksi dengan status "${tabs.find(t => t.id === activeTab)?.label}"`
+            }
           </p>
         </div>
       ) : (
@@ -50,32 +101,36 @@ export default function History() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((trx, index) => (
+              {filteredOrders.map((order) => (
                 <tr
-                  key={index}
+                  key={order.id}
                   className="hover:bg-blue-50 transition duration-150 text-gray-800"
                 >
-                  <td className="py-2 px-4 border-b">{trx.date}</td>
-                  <td className="py-2 px-4 border-b">{trx.nama || "-"}</td>
                   <td className="py-2 px-4 border-b">
-                    {formatRupiah(trx.total || 0)}
+                    {new Date(order.created_at).toLocaleDateString('id-ID')}
+                  </td>
+                  <td className="py-2 px-4 border-b">{order.order_data[0].wbp_name || "-"}</td>
+                  <td className="py-2 px-4 border-b">
+                    {formatRupiah(order.total || 0)}
                   </td>
                   <td className="py-2 px-4 border-b">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        trx.status === "Selesai"
+                        order.status === "completed"
                           ? "bg-green-100 text-green-700"
-                          : trx.status === "Dikonfirmasi"
+                          : order.status === "process"
                           ? "bg-blue-100 text-blue-700"
+                          : order.status === "cancelled"
+                          ? "bg-red-100 text-red-700"
                           : "bg-yellow-100 text-yellow-700"
                       }`}
                     >
-                      {trx.status}
+                      {statusMap[order.status] || order.status}
                     </span>
                   </td>
                   <td className="py-2 px-4 border-b text-center">
                     <button
-                      onClick={() => setSelected(trx)}
+                      onClick={() => setSelected(order)}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1 mx-auto transition"
                     >
                       <Info size={15} /> Detail
@@ -106,14 +161,27 @@ export default function History() {
             <div className="space-y-2 text-gray-700 text-sm">
               <p>
                 <span className="font-medium">Nama WBP:</span>{" "}
-                {selected.nama || "-"}
+                {selected.order_data[0].wbp_name || "-"}
               </p>
               <p>
-                <span className="font-medium">Tanggal:</span> {selected.date}
+                <span className="font-medium">Tanggal:</span>{" "}
+                {new Date(selected.created_at).toLocaleDateString('id-ID')}
               </p>
               <p>
                 <span className="font-medium">Status:</span>{" "}
-                {selected.status || "Menunggu"}
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    selected.status === "completed"
+                      ? "bg-green-100 text-green-700"
+                      : selected.status === "process"
+                      ? "bg-blue-100 text-blue-700"
+                      : selected.status === "cancelled"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {statusMap[selected.status] || selected.status}
+                </span>
               </p>
             </div>
 
@@ -129,9 +197,9 @@ export default function History() {
                       className="flex justify-between text-gray-700 text-sm"
                     >
                       <span>
-                        {item.name} x{item.qty}
+                        {item.name} x{item.quantity}
                       </span>
-                      <span>{formatRupiah(item.price * item.qty)}</span>
+                      <span>{formatRupiah(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import toast from "react-hot-toast";
 import axios from "axios";
 
 const useCartStore = create(
@@ -30,6 +29,28 @@ const useCartStore = create(
                 set({ cartItems: response.data.data });
             } catch (error) {
                 console.error("Fetch carts error:", error);
+            }
+        },
+        removeCartItem: async(itemId) => {
+            const token = get().token;
+            if (!token) {
+                console.error("Token not found. Unable to remove item from cart.");
+                return;
+            }
+
+            try {
+                await axios.delete(`http://localhost:8001/api/carts/${itemId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                const updatedCartItems = get().cartItems.filter(
+                    (item) => item.id !== itemId
+                );
+                set({ cartItems: updatedCartItems });
+            } catch (error) {
+                console.error("Remove cart item error:", error);
             }
         },
 
