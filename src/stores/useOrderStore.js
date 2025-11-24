@@ -69,12 +69,32 @@ const useOrderStore = create((set, get) => ({
     },
 
     // ... fungsi lainnya tetap sama
+    // fetchOrder: async() => {
+    //     try {
+    //         const token = get().getToken();
+    //         if (!token) {
+    //             console.error("Token not found. Unable to fetch orders.");
+    //             return;
+    //         }
+
+    //         const response = await axios.get("http://localhost:8001/api/orders", {
+    //             headers: {
+    //                 Authorization: `Bearer ${token}`,
+    //             },
+    //             withCredentials: false,
+    //         });
+    //         set({ orders: response.data.data });
+    //     } catch (error) {
+    //         console.error("Fetch orders error:", error);
+    //     }
+    // },
+
     fetchOrder: async() => {
         try {
             const token = get().getToken();
             if (!token) {
                 console.error("Token not found. Unable to fetch orders.");
-                return;
+                return [];
             }
 
             const response = await axios.get("http://localhost:8001/api/orders", {
@@ -83,9 +103,108 @@ const useOrderStore = create((set, get) => ({
                 },
                 withCredentials: false,
             });
+
+            console.log("Orders response:", response.data);
+
+            // // Pastikan kita mengembalikan data yang benar
+            // if (response.data && response.data.data) {
+            //     set({ orders: response.data.data });
+            //     return response.data.data;
+            // } else {
+            //     console.error("Invalid response format:", response.data);
+            //     return [];
+            // }
+
             set({ orders: response.data.data });
+            return response.data.data;
         } catch (error) {
             console.error("Fetch orders error:", error);
+            toast.error("Gagal memuat data transaksi");
+            return [];
+        }
+    },
+
+    // Update order status
+    // updateOrderStatus: async(orderId, status) => {
+    //     const token = get().getToken();
+    //     if (!token) {
+    //         toast.error("Anda harus login terlebih dahulu");
+    //         throw new Error("User not authenticated");
+    //     }
+
+    //     try {
+    //         const response = await axios.put(
+    //             `http://localhost:8001/api/orders/${orderId}/status`, { status }, {
+    //                 headers: {
+    //                     Authorization: `Bearer ${token}`,
+    //                     "Content-Type": "application/json",
+    //                 },
+    //                 withCredentials: false,
+    //             }
+    //         );
+
+    //         toast.success("Status order berhasil diperbarui");
+    //         return response.data;
+    //     } catch (error) {
+    //         console.error("Update order status error:", error);
+    //         let errorMessage = "Gagal memperbarui status order";
+
+    //         if (error.response) {
+    //             errorMessage = error.response.data.message || errorMessage;
+    //         }
+
+    //         toast.error(errorMessage);
+    //         throw error;
+    //     }
+    // },
+    updateOrderStatus: async(orderId, status, formData = null) => {
+        const token = get().getToken();
+        if (!token) {
+            toast.error("Anda harus login terlebih dahulu");
+            throw new Error("User not authenticated");
+        }
+
+        try {
+            let requestData;
+            let headers = {
+                Authorization: `Bearer ${token}`,
+            };
+
+            if (formData instanceof FormData) {
+                // Jika menggunakan FormData (untuk upload file)
+                requestData = formData;
+                // Jangan set Content-Type untuk FormData, biarkan browser set otomatis
+            } else {
+                // Jika hanya update status tanpa file
+                requestData = { status };
+                headers["Content-Type"] = "application/json";
+            }
+
+            console.log("Sending update request for order:", orderId);
+            console.log("Request data:", requestData);
+
+            const response = await axios.put(
+                `http://localhost:8001/api/orders/${orderId}/status`,
+                requestData, {
+                    headers: headers,
+                    withCredentials: false,
+                }
+            );
+
+            console.log("Update response:", response.data);
+            toast.success("Status order berhasil diperbarui");
+            return response.data;
+        } catch (error) {
+            console.error("Update order status error:", error);
+            let errorMessage = "Gagal memperbarui status order";
+
+            if (error.response) {
+                errorMessage = error.response.data.message || errorMessage;
+                console.error("Error response:", error.response.data);
+            }
+
+            toast.error(errorMessage);
+            throw error;
         }
     },
 

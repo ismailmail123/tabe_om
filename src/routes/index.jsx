@@ -6,8 +6,8 @@ import Login from "../pages/Login"
 // 🧩 Admin pages
 import AdminLayout from "../pages/Admin/Layout"
 import Dashboard from "../pages/Admin/Dashboard"
-import Produk from "../pages/Admin/Produk"
-import Transaksi from "../pages/Admin/Transaksi"
+import Produk from "../pages/Admin/produk"
+import Transaksi from "../pages/Admin/transaksi/Transaksi"
 
 // 👤 User pages
 import UserLayout from "../pages/User/Layout"
@@ -16,6 +16,7 @@ import Keranjang from "../pages/User/Keranjang"
 import History from "../pages/User/History"
 import Pembayaran from "../pages/User/Pembayaran"
 import DetailProduk from "../pages/User/DetailProduk"
+import DetailProdukAdmin from "../pages/Admin/produk/detailProduk";
 
 import { isLoggedIn, getRole } from "../utils/auth"
 
@@ -51,6 +52,7 @@ const RoutesIndex = () => {
         <Route path="home" element={<Dashboard />} />
         <Route path="produk" element={<Produk />} />
         <Route path="transaksi" element={<Transaksi />} />
+        <Route path="produk/:id" element={<DetailProdukAdmin />} />
       </Route>
 
       {/* 👤 Halaman User */}

@@ -5,6 +5,7 @@ import useAuthStore from "../../stores/useAuthStore";
 import toast from "react-hot-toast";
 
 import useCartStore from "../../stores/useCartStore";
+import { User } from "lucide-react";
 
 const DetailProduk = () => {
   const { id } = useParams();
