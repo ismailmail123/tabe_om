@@ -6,6 +6,8 @@ import axios from "axios";
 const useOrderStore = create((set, get) => ({
     authUser: JSON.parse(localStorage.getItem("authUser")) || null,
     isLoading: false,
+    orders: [],
+    orderById: null,
 
     // Fungsi untuk mendapatkan token
     getToken: () => {
@@ -104,7 +106,7 @@ const useOrderStore = create((set, get) => ({
                 withCredentials: false,
             });
 
-            console.log("Orders response:", response.data);
+            console.log("Orders response:", response.data.data);
 
             // // Pastikan kita mengembalikan data yang benar
             // if (response.data && response.data.data) {

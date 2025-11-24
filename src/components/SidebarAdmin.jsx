@@ -8,6 +8,8 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Settings,
+  Layers
 } from "lucide-react"
 
 export default function SidebarAdmin() {
@@ -71,6 +73,16 @@ export default function SidebarAdmin() {
       label: "Transaksi",
       hasNotification: hasNewTransaction,
       onClick: resetNotification,
+    },
+    {
+      path: "/dashboard/categories",
+      icon: Layers,
+      label: "Mnajement Category",
+    },
+    {
+      path: "/dashboard/Management",
+      icon: Settings,
+      label: "Mnajement",
     },
   ]
 

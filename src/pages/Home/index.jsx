@@ -4,6 +4,16 @@ import { useNavigate } from 'react-router-dom';
 const KoperasiRutan = () => {
   const navigate = useNavigate();
 
+  const authUser = JSON.parse(localStorage.getItem('authUser'));
+
+  if (authUser && authUser.user.role === 'admin') {
+    navigate('/dashboard/home');
+  }else{
+      navigate('/user/belanja');
+    
+  }
+
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       {/* Navigation */}

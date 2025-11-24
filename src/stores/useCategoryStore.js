@@ -1,3 +1,54 @@
+// import { create } from "zustand";
+// import toast from "react-hot-toast";
+// import axios from "axios";
+
+// const useCategoryStore = create((set, get) => ({
+//     authUser: JSON.parse(localStorage.getItem("authUser")) || null,
+//     isLoading: false,
+//     categories: [],
+
+//     // 🟢 Fetch semua kategori
+//     fetchCategories: async() => {
+//         set({ isLoading: true });
+//         try {
+//             const res = await axios.get("http://localhost:8001/api/categories", {
+//                 headers: {
+//                     Authorization: `Bearer ${get().authUser.token}`,
+//                 },
+//             });
+//             set({ categories: res.data.data });
+//         } catch (error) {
+//             toast.error(error.response.data.message || "Fetch categories failed");
+//         } finally {
+//             set({ isLoading: false });
+//         }
+//     },
+
+//     // 🟢 Tambah kategori baru
+//     createCategory: async(categoryData) => {
+//         set({ isLoading: true });
+//         try {
+//             const res = await axios.post("http://localhost:8001/api/categories", categoryData, {
+//                 headers: {
+//                     Authorization: `Bearer ${get().authUser.token}`,
+//                 },
+//             });
+//             toast.success("Kategori berhasil ditambahkan");
+//             await get().fetchCategories(); // Refresh list
+//             return res.data;
+//         } catch (error) {
+//             toast.error(error.response.data.message || "Create category failed");
+//             throw error;
+//         } finally {
+//             set({ isLoading: false });
+//         }
+//     },
+// }));
+
+// export default useCategoryStore;
+
+
+// useCategoryStore.js
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -6,6 +57,7 @@ const useCategoryStore = create((set, get) => ({
     authUser: JSON.parse(localStorage.getItem("authUser")) || null,
     isLoading: false,
     categories: [],
+    selectedCategory: null,
 
     // 🟢 Fetch semua kategori
     fetchCategories: async() => {
@@ -24,6 +76,25 @@ const useCategoryStore = create((set, get) => ({
         }
     },
 
+    // 🟢 Fetch kategori by ID
+    fetchCategoryById: async(id) => {
+        set({ isLoading: true });
+        try {
+            const res = await axios.get(`http://localhost:8001/api/categories/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${get().authUser.token}`,
+                },
+            });
+            set({ selectedCategory: res.data.data });
+            return res.data.data;
+        } catch (error) {
+            toast.error(error.response.data.message || "Fetch category failed");
+            throw error;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
     // 🟢 Tambah kategori baru
     createCategory: async(categoryData) => {
         set({ isLoading: true });
@@ -34,7 +105,7 @@ const useCategoryStore = create((set, get) => ({
                 },
             });
             toast.success("Kategori berhasil ditambahkan");
-            await get().fetchCategories(); // Refresh list
+            await get().fetchCategories();
             return res.data;
         } catch (error) {
             toast.error(error.response.data.message || "Create category failed");
@@ -43,6 +114,49 @@ const useCategoryStore = create((set, get) => ({
             set({ isLoading: false });
         }
     },
+
+    // 🟢 Update kategori
+    updateCategory: async(id, formData) => {
+        set({ isLoading: true });
+        try {
+            const res = await axios.put(`http://localhost:8001/api/categories/${id}`, formData, {
+                headers: {
+                    Authorization: `Bearer ${get().authUser.token}`,
+                },
+            });
+            toast.success("Kategori berhasil diupdate");
+            await get().fetchCategories();
+            return res.data;
+        } catch (error) {
+            toast.error(error.response.data.message || "Update category failed");
+            throw error;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    // 🟢 Hapus kategori
+    deleteCategory: async(categoryId) => {
+        set({ isLoading: true });
+        try {
+            await axios.delete(`http://localhost:8001/api/categories/delete`, {
+                data: { categoryId },
+                headers: {
+                    Authorization: `Bearer ${get().authUser.token}`,
+                },
+            });
+            toast.success("Kategori berhasil dihapus");
+            await get().fetchCategories();
+        } catch (error) {
+            toast.error(error.response.data.message || "Delete category failed");
+            throw error;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    // Clear selected category
+    clearSelectedCategory: () => set({ selectedCategory: null }),
 }));
 
 export default useCategoryStore;

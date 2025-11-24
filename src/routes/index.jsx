@@ -1,35 +1,36 @@
-import React from "react"
-import { Routes, Route, Navigate } from "react-router-dom"
-import Home from "../pages/Home"
-import Login from "../pages/Login"
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Home from "../pages/Home";
+import Login from "../pages/Login";
 
 // 🧩 Admin pages
-import AdminLayout from "../pages/Admin/Layout"
-import Dashboard from "../pages/Admin/Dashboard"
-import Produk from "../pages/Admin/produk"
-import Transaksi from "../pages/Admin/transaksi/Transaksi"
+import AdminLayout from "../pages/Admin/Layout";
+import Dashboard from "../pages/Admin/Dashboard";
+import Produk from "../pages/Admin/produk";
+import Transaksi from "../pages/Admin/transaksi/Transaksi";
 
 // 👤 User pages
-import UserLayout from "../pages/User/Layout"
-import Belanja from "../pages/User/Belanja"
-import Keranjang from "../pages/User/Keranjang"
-import History from "../pages/User/History"
-import Pembayaran from "../pages/User/Pembayaran"
-import DetailProduk from "../pages/User/DetailProduk"
+import UserLayout from "../pages/User/Layout";
+import Belanja from "../pages/User/Belanja";
+import Keranjang from "../pages/User/Keranjang";
+import History from "../pages/User/History";
+import Pembayaran from "../pages/User/Pembayaran";
+import DetailProduk from "../pages/User/DetailProduk";
 import DetailProdukAdmin from "../pages/Admin/produk/detailProduk";
+import CategoryForm from "../pages/Admin/manajement/AddCategory";
+import CategoryDetail from "../pages/Admin/manajement/DetailCategory";
+import CategoryList from "../pages/Admin/manajement/CategoryList";
 
-import { isLoggedIn, getRole } from "../utils/auth"
+import { isLoggedIn, getRole } from "../utils/auth";
 
 // 🔐 Proteksi halaman sesuai role
 const ProtectedRoute = ({ children, role }) => {
-  console.log("ProtectedRoute check for role:", role)
+  console.log("ProtectedRoute check for role:", role);
   if (!isLoggedIn() || getRole() !== role) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace />;
   }
-  return children
-}
-
-
+  return children;
+};
 
 const RoutesIndex = () => {
   return (
@@ -53,6 +54,10 @@ const RoutesIndex = () => {
         <Route path="produk" element={<Produk />} />
         <Route path="transaksi" element={<Transaksi />} />
         <Route path="produk/:id" element={<DetailProdukAdmin />} />
+        <Route path="categories" element={<CategoryList />} />
+        <Route path="categories/add" element={<CategoryForm />} />
+        <Route path="categories/edit/:id" element={<CategoryForm />} />
+        <Route path="categories/:id" element={<CategoryDetail />} />
       </Route>
 
       {/* 👤 Halaman User */}
@@ -75,7 +80,7 @@ const RoutesIndex = () => {
       {/* 🚫 Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
-}
+  );
+};
 
-export default RoutesIndex
+export default RoutesIndex;
