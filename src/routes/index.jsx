@@ -20,6 +20,7 @@ import DetailProdukAdmin from "../pages/Admin/produk/detailProduk";
 import CategoryForm from "../pages/Admin/manajement/AddCategory";
 import CategoryDetail from "../pages/Admin/manajement/DetailCategory";
 import CategoryList from "../pages/Admin/manajement/CategoryList";
+import UserManajement from "../pages/Admin/manajement/UserManajement";
 
 import { isLoggedIn, getRole } from "../utils/auth";
 
@@ -58,6 +59,7 @@ const RoutesIndex = () => {
         <Route path="categories/add" element={<CategoryForm />} />
         <Route path="categories/edit/:id" element={<CategoryForm />} />
         <Route path="categories/:id" element={<CategoryDetail />} />
+        <Route path="user-manajemen" element={<UserManajement />} />
       </Route>
 
       {/* 👤 Halaman User */}

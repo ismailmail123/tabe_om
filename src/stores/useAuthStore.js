@@ -7,6 +7,109 @@ const useAuthStore = create(
     (set, get) => ({
         authUser: JSON.parse(localStorage.getItem("authUser")) || null, // Ambil data user dari local storage
         userId: null,
+        users: [],
+        userDetail: null,
+        loading: false,
+
+        // Fungsi untuk mengambil semua user
+        fetchUsers: async() => {
+            set({ loading: true });
+            try {
+                const token = localStorage.getItem("token");
+                const res = await axios.get("http://localhost:8001/api/users", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                set({ users: res.data.data });
+            } catch (error) {
+                toast.error(error.response.data.message || "Failed to fetch users");
+            } finally {
+                set({ loading: false });
+            }
+        },
+
+        // Fungsi untuk mengambil detail user
+        fetchUserDetail: async(userId) => {
+            set({ loading: true });
+            try {
+                const token = localStorage.getItem("token");
+                const res = await axios.get(`http://localhost:8001/api/users/${userId}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                set({ userDetail: res.data.data });
+            } catch (error) {
+                toast.error(error.response.data.message || "Failed to fetch user detail");
+            } finally {
+                set({ loading: false });
+            }
+        },
+
+        // Fungsi untuk menghapus user
+        deleteUser: async(userId) => {
+            try {
+                const token = localStorage.getItem("token");
+                await axios.delete("http://localhost:8001/api/users/delete", {
+                    data: { userId },
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                toast.success("User deleted successfully");
+                // Refresh list setelah hapus
+                get().fetchUsers();
+            } catch (error) {
+                toast.error(error.response.data.message || "Failed to delete user");
+            }
+        },
+
+        // Fungsi untuk verifikasi email user
+        verifyUserEmail: async(email, kode_verifikasi) => {
+            set({ loading: true });
+            try {
+                const res = await axios.post("http://localhost:8001/api/auth/verify-email", {
+                    email,
+                    kode_verifikasi
+                });
+                toast.success("Email verified successfully");
+                return res.data;
+            } catch (error) {
+                toast.error(error.response.data.message || "Verification failed");
+                throw error;
+            } finally {
+                set({ loading: false });
+            }
+        },
+
+        // Fungsi untuk update user
+        updateUser: async(userId, data) => {
+            set({ loading: true });
+            try {
+                const token = localStorage.getItem("token");
+                const res = await axios.put(`http://localhost:8001/api/users/${userId}`, data, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+                toast.success("User updated successfully");
+                get().fetchUsers(); // Refresh list
+                return res.data;
+            } catch (error) {
+                toast.error(error.response.data.message || "Update failed");
+                throw error;
+            } finally {
+                set({ loading: false });
+            }
+        },
+
+        // Clear user detail ketika keluar dari detail page
+        clearUserDetail: () => {
+            set({ userDetail: null });
+        },
+
 
         // Fungsi untuk signup
         signup: async(data) => {

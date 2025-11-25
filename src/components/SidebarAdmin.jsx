@@ -80,9 +80,9 @@ export default function SidebarAdmin() {
       label: "Mnajement Category",
     },
     {
-      path: "/dashboard/Management",
+      path: "/dashboard/user-manajemen",
       icon: Settings,
-      label: "Mnajement",
+      label: "Mnajemen",
     },
   ]
 
