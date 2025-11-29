@@ -11,7 +11,7 @@ const DetailProduk = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const { fetchProductById, productId, fetchProducts, products } = useProductStore();
+  const { fetchProductById, productDetail, fetchProducts, products } = useProductStore();
   const {addCartItem, cartItems} = useCartStore();
   const { logout, authUser } = useAuthStore();
   
@@ -34,6 +34,8 @@ const DetailProduk = () => {
     fetchProductById(id);
     fetchProducts();
   }, [id, fetchProductById, fetchProducts]);
+
+  console.log("Product Detail:", productDetail);
 
   // Handle click outside dropdown
   useEffect(() => {
@@ -100,26 +102,26 @@ const handleAddToCart = async () => {
   // Handle Add to Cart langsung (dari kode pertama)
  const handleDirectAddToCart = () => {
   // Cek stok
-  if (productId.stock <= 0) {
+  if (productDetail.stock <= 0) {
     toast.error("Maaf, stok produk ini sudah habis");
     return;
   }
 
   const cart = JSON.parse(localStorage.getItem("cart")) || [];
-  const existing = cart.find((item) => item.id === productId.id);
+  const existing = cart.find((item) => item.id === productDetail.id);
   
   if (existing) {
-    if (existing.qty >= productId.stock) {
+    if (existing.qty >= productDetail.stock) {
       toast.error("Stok tidak mencukupi");
       return;
     }
     existing.qty += 1;
   } else {
-    cart.push({ ...productId, qty: 1 });
+    cart.push({ ...productDetail, qty: 1 });
   }
 
   localStorage.setItem("cart", JSON.stringify(cart));
-  toast.success(`${productId.name} telah ditambahkan ke keranjang!`);
+  toast.success(`${productDetail.name} telah ditambahkan ke keranjang!`);
 };
 
   // Fungsi untuk render rating bintang
@@ -141,11 +143,11 @@ const handleAddToCart = async () => {
 
   // Calculate average rating
   const calculateAverageRating = () => {
-    if (!productId?.variant) return 0;
+    if (!productDetail?.variant) return 0;
     let totalRating = 0;
     let reviewCount = 0;
 
-    productId.variant.forEach((variant) => {
+    productDetail.variant.forEach((variant) => {
       variant.review?.forEach((review) => {
         if (review.rating !== null && review.rating > 0) {
           totalRating += review.rating;
@@ -159,9 +161,9 @@ const handleAddToCart = async () => {
 
   // Count valid reviews
   const countValidReviews = () => {
-    if (!productId?.variant) return 0;
+    if (!productDetail?.variant) return 0;
     let count = 0;
-    productId.variant.forEach((variant) => {
+    productDetail.variant.forEach((variant) => {
       count += variant.review?.filter(
         (review) => review.rating !== null && review.rating > 0
       ).length || 0;
@@ -171,22 +173,22 @@ const handleAddToCart = async () => {
 
   const averageRating = calculateAverageRating();
   const validReviewCount = countValidReviews();
-  const allReviews = productId?.variant?.flatMap((v) => v.review) || [];
+  const allReviews = productDetail?.variant?.flatMap((v) => v.review) || [];
 
   // Check stock
   const isOutOfStock = () => {
-    if (productId?.variant && Array.isArray(productId.variant)) {
-      return productId.variant.every(v => v.stock <= 0);
+    if (productDetail?.variant && Array.isArray(productDetail.variant)) {
+      return productDetail.variant.every(v => v.stock <= 0);
     }
-    return productId?.stock <= 0;
+    return productDetail?.stock <= 0;
   };
 
   const outOfStock = isOutOfStock();
 
   // Produk rekomendasi
-  const rekomendasi = products.filter((p) => p.id !== productId?.id).slice(0, 4);
+  const rekomendasi = products.filter((p) => p.id !== productDetail?.id).slice(0, 4);
 
-  if (!productId) {
+  if (!productDetail) {
     return (
       <div className="p-6 text-center">
         <h2 className="text-xl font-semibold text-gray-700">Produk tidak ditemukan</h2>
@@ -211,13 +213,13 @@ const handleAddToCart = async () => {
         {/* Detail produk - TAMPILAN UTAMA DARI KODE PERTAMA */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-blue-100 rounded-lg h-64 flex items-center justify-center text-5xl font-bold text-blue-500">
-            {productId.name.split(" ").map((w) => w[0]).join("")}
+            {productDetail.name.split(" ").map((w) => w[0]).join("")}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{productId.name}</h1>
-            <p className="text-gray-600 mb-3">{productId.desc}</p>
-            <div className="text-blue-600 text-2xl font-semibold mb-2">{formatRupiah(productId.price)}</div>
-            <p className="text-sm text-gray-500 mb-4">Stok: {productId.stock}</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{productDetail.name}</h1>
+            <p className="text-gray-600 mb-3">{productDetail.desc}</p>
+            <div className="text-blue-600 text-2xl font-semibold mb-2">{formatRupiah(productDetail.price)}</div>
+            <p className="text-sm text-gray-500 mb-4">Stok: {productDetail.stock}</p>
 
             {/* Rating Section dari kode kedua */}
             <div className="flex justify-between items-center mb-4">
@@ -325,7 +327,7 @@ const handleAddToCart = async () => {
               <div>
                 <h4 className="font-semibold mb-3 text-gray-700">Variant</h4>
                 <div className="grid grid-cols-2 gap-4">
-  {productId?.variant?.map((variant) => (
+  {productDetail?.variant?.map((variant) => (
     <div
       key={variant.id}
       onClick={() => variant.stock > 0 && setSelectedVariant(variant)}
@@ -387,8 +389,8 @@ const handleAddToCart = async () => {
               {selectedVariant?.type === "pre order" ? (
                 <button className="bg-transparent border-0 w-full">
                   {/* <WhatsAppButton
-                    phoneNumber={productId?.seller?.phone_number}
-                    message={`Halo, saya ingin pre-order produk: ${productId.name} - ${selectedVariant?.name}`}
+                    phoneNumber={productDetail?.seller?.phone_number}
+                    message={`Halo, saya ingin pre-order produk: ${productDetail.name} - ${selectedVariant?.name}`}
                   >
                     <div className="flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-xl font-semibold">
                       <FaWhatsapp className="text-xl" />

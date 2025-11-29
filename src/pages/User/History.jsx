@@ -1,15 +1,23 @@
 import React, { useEffect, useState } from "react"
-import { Clock, Info, X, Image as ImageIcon } from "lucide-react"
-import useOrderStore from "../../stores/useOrderStore" // Import store order
+import { Clock, Info, X, Image as ImageIcon, CreditCard, Wallet } from "lucide-react"
+import useOrderStore from "../../stores/useOrderStore"
+import usePaymentStore from "../../stores/usePaymentStore"
+import toast from "react-hot-toast"
 
 export default function History() {
   const [selected, setSelected] = useState(null)
-  const [activeTab, setActiveTab] = useState("all") // State untuk tab aktif
+  const [activeTab, setActiveTab] = useState("all")
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("transfer")
   
-  // Ambil data dari store order
   const { orders, fetchOrder } = useOrderStore()
-  
-  // Mapping status untuk tampilan
+  const { 
+    createPayment, 
+    fetchPaymentByOrderId, 
+    paymentById,
+    isLoading: paymentLoading 
+  } = usePaymentStore()
+
   const statusMap = {
     'pending': 'Menunggu',
     'process': 'Dikonfirmasi', 
@@ -17,23 +25,65 @@ export default function History() {
     'cancelled': 'Dibatalkan'
   }
 
+  const paymentStatusMap = {
+    'pending': 'Menunggu Pembayaran',
+    'completed': 'Lunas',
+    'failed': 'Gagal',
+    'cancelled': 'Dibatalkan'
+  }
 
   useEffect(() => {
-    fetchOrder() // Fetch data order saat komponen mount
+    fetchOrder()
   }, [fetchOrder])
 
-  console.log("Orders selected:", selected)
+  useEffect(() => {
+    if (selected && selected.id) {
+      fetchPaymentByOrderId(selected.id)
+    }
+  }, [selected, fetchPaymentByOrderId])
 
-  // Filter orders berdasarkan tab aktif
   const filteredOrders = orders?.filter(order => {
     if (activeTab === "all") return true
     return order.status === activeTab
   }) || []
 
   const formatRupiah = (n) =>
-    "Rp " + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+    "Rp " + (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
 
-  // Tabs untuk filter status
+  // Handle pembayaran dengan validasi
+  const handlePayment = async () => {
+    if (!selected || !selected.order_id) {
+      toast.error("Data order tidak valid")
+      return
+    }
+
+    try {
+      console.log("Processing payment for order:", selected.order_id)
+      const result = await createPayment(selected.order_id, {
+        payment_method: selectedPaymentMethod
+      })
+
+      if (result && selectedPaymentMethod === 'transfer') {
+        toast.success("Mengarahkan ke halaman pembayaran...")
+        // Untuk transfer, akan otomatis redirect ke Midtrans
+      } else if (result && selectedPaymentMethod === 'COD') {
+        // Untuk COD, tutup modal dan refresh data
+        setShowPaymentModal(false)
+        await fetchOrder() // Refresh data order
+        setSelected(null) // Tutup modal detail
+        toast.success("Pembayaran COD berhasil diproses!")
+      }
+    } catch (error) {
+      console.error('Payment error:', error)
+      // Error sudah dihandle di store
+    }
+  }
+
+  // Cek apakah order perlu tombol pembayaran
+  const needsPayment = (order) => {
+    return order.payment_status === 'pending'
+  }
+
   const tabs = [
     { id: "all", label: "Semua" },
     { id: "pending", label: "Menunggu" },
@@ -95,6 +145,7 @@ export default function History() {
                 <th className="py-3 px-4 border-b text-gray-700">Nama WBP</th>
                 <th className="py-3 px-4 border-b text-gray-700">Total Harga</th>
                 <th className="py-3 px-4 border-b text-gray-700">Status</th>
+                <th className="py-3 px-4 border-b text-gray-700">Status Pembayaran</th>
                 <th className="py-3 px-4 border-b text-center text-gray-700">
                   Aksi
                 </th>
@@ -109,9 +160,9 @@ export default function History() {
                   <td className="py-2 px-4 border-b">
                     {new Date(order.created_at).toLocaleDateString('id-ID')}
                   </td>
-                  <td className="py-2 px-4 border-b">{order.order_data[0].wbp_name || "-"}</td>
+                  <td className="py-2 px-4 border-b">{order.order_data?.[0]?.wbp_name || "-"}</td>
                   <td className="py-2 px-4 border-b">
-                    {formatRupiah(order.total || 0)}
+                    {formatRupiah(order.total)}
                   </td>
                   <td className="py-2 px-4 border-b">
                     <span
@@ -126,6 +177,21 @@ export default function History() {
                       }`}
                     >
                       {statusMap[order.status] || order.status}
+                    </span>
+                  </td>
+                  <td className="py-2 px-4 border-b">
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        order.payment_status === "completed"
+                          ? "bg-green-100 text-green-700"
+                          : order.payment_status === "pending"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : order.payment_status === "failed" || order.payment_status === "cancelled"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {paymentStatusMap[order.payment_status] || order.payment_status}
                     </span>
                   </td>
                   <td className="py-2 px-4 border-b text-center">
@@ -146,7 +212,7 @@ export default function History() {
       {/* Modal Detail */}
       {selected && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6 relative animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6 relative animate-fadeIn max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelected(null)}
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
@@ -160,15 +226,18 @@ export default function History() {
 
             <div className="space-y-2 text-gray-700 text-sm">
               <p>
+                <span className="font-medium">Order ID:</span> #{selected.id}
+              </p>
+              <p>
                 <span className="font-medium">Nama WBP:</span>{" "}
-                {selected.order_data[0].wbp_name || "-"}
+                {selected.order_data?.[0]?.wbp_name || "-"}
               </p>
               <p>
                 <span className="font-medium">Tanggal:</span>{" "}
                 {new Date(selected.created_at).toLocaleDateString('id-ID')}
               </p>
               <p>
-                <span className="font-medium">Status:</span>{" "}
+                <span className="font-medium">Status Order:</span>{" "}
                 <span
                   className={`px-2 py-1 rounded-full text-xs font-medium ${
                     selected.status === "completed"
@@ -182,6 +251,27 @@ export default function History() {
                 >
                   {statusMap[selected.status] || selected.status}
                 </span>
+              </p>
+              <p>
+                <span className="font-medium">Status Pembayaran:</span>{" "}
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    selected.payment_status === "completed"
+                      ? "bg-green-100 text-green-700"
+                      : selected.payment_status === "pending"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : selected.payment_status === "failed" || selected.payment_status === "cancelled"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {paymentStatusMap[selected.payment_status] || selected.payment_status}
+                </span>
+                <p>Bukti Pengambilan : 
+                  <div className="flex justify-start align-middle w-52">
+                  <img className="w-full" src={selected.purchase_receipt_photo} />
+                  </div>
+                  </p>
               </p>
             </div>
 
@@ -226,9 +316,22 @@ export default function History() {
             <div className="flex justify-between mt-6 font-semibold text-gray-800">
               <span>Total Pembayaran</span>
               <span className="text-green-600">
-                {formatRupiah(selected.total || 0)}
+                {formatRupiah(selected.total)}
               </span>
             </div>
+
+            {/* Tombol Bayar - Hanya tampil jika status pembayaran pending */}
+            {needsPayment(selected) && (
+              <div className="mt-4 pt-4 border-t">
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition"
+                >
+                  <CreditCard size={18} />
+                  Lanjutkan Pembayaran
+                </button>
+              </div>
+            )}
 
             <div className="mt-5 flex justify-end">
               <button
@@ -237,6 +340,124 @@ export default function History() {
               >
                 Tutup
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Pembayaran */}
+      {showPaymentModal && selected && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative animate-fadeIn">
+            <button
+              onClick={() => setShowPaymentModal(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+            >
+              <X size={22} />
+            </button>
+
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Wallet className="text-green-600" /> Pilih Metode Pembayaran
+            </h3>
+
+            <div className="space-y-4">
+              {/* Informasi Order */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">Order ID:</span> #{selected.id}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">Total:</span> {formatRupiah(selected.total)}
+                </p>
+              </div>
+
+              {/* Pilihan Metode Pembayaran */}
+              <div className="space-y-3">
+                <label className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="transfer"
+                    checked={selectedPaymentMethod === "transfer"}
+                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                    className="text-green-600 focus:ring-green-500"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium">Transfer Bank</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Bayar via transfer bank, Virtual Account, atau e-wallet
+                    </p>
+                  </div>
+                </label>
+
+                {/* <label className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="COD"
+                    checked={selectedPaymentMethod === "COD"}
+                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                    className="text-green-600 focus:ring-green-500"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-5 h-5 text-orange-600" />
+                      <span className="font-medium">COD (Cash on Delivery)</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Bayar saat barang diterima
+                    </p>
+                  </div>
+                </label> */}
+              </div>
+
+              {/* Informasi Metode Terpilih */}
+              {selectedPaymentMethod === "transfer" && (
+                <div className="bg-yellow-50 p-3 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    Anda akan diarahkan ke halaman pembayaran Midtrans untuk menyelesaikan transaksi.
+                  </p>
+                </div>
+              )}
+
+              {selectedPaymentMethod === "COD" && (
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    Pesanan akan diproses dan Anda dapat membayar ketika barang sudah diterima.
+                  </p>
+                </div>
+              )}
+
+              {/* Tombol Aksi */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition"
+                  disabled={paymentLoading}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handlePayment}
+                  disabled={paymentLoading}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition disabled:opacity-50"
+                >
+                  {paymentLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={18} />
+                      {selectedPaymentMethod === 'transfer' ? 'Bayar Sekarang' : 'Pilih COD'}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

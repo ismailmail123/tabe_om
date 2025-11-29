@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
-import { logout } from "../utils/auth"
+// import { logout } from "../utils/auth"
 import {
   Menu,
   X,
@@ -11,6 +11,7 @@ import {
   Settings,
   Layers
 } from "lucide-react"
+import useAuthStore from "../stores/useAuthStore"
 
 export default function SidebarAdmin() {
   const navigate = useNavigate()
@@ -20,6 +21,7 @@ export default function SidebarAdmin() {
   const [open, setOpen] = useState(true)
   const [hasNewTransaction, setHasNewTransaction] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const logout = useAuthStore((state) => state.logout);
 
   // Handle responsive behavior
   useEffect(() => {

@@ -189,7 +189,7 @@ export default function Transaksi() {
   const handleKonfirmasi = async (id) => {
     try {
       console.log("Confirming order:", id);
-      await updateOrderStatus(id, "confirmed");
+      await updateOrderStatus(id, "completed");
       toast.success("Transaksi berhasil dikonfirmasi");
       loadTransactions(); // Reload data
     } catch (error) {

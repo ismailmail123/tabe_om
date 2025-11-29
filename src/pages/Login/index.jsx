@@ -25,47 +25,70 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-    useEffect(() => {
-      const authUser = JSON.parse(localStorage.getItem('authUser'));
+
+
+//   useEffect(() => {
+//   const queryParams = new URLSearchParams(window.location.search);
+//   const token = queryParams.get('token');
+//   const error = queryParams.get('error');
+//   const message = queryParams.get('message');
+
+//   console.log("queri params", queryParams);
+
+//   if (token) {
+//     const userData = jwtDecode(token);
+//     localStorage.setItem("authUser", JSON.stringify({user: userData}));
+//     localStorage.setItem('token', token);
+    
+//     // Redirect ke halaman sebelumnya atau home
+//     // const preLoginPath = localStorage.getItem('preLoginPath') || '/';
+//     // localStorage.removeItem('preLoginPath');
+//     // window.location.href = preLoginPath;
+//   }
+
+// //   if (error) {
+// //     if (error === 'provider_mismatch' && message) {
+// //       toast.error(decodeURIComponent(message));
+// //     } else {
+// //       toast.error('Google login failed');
+// //     }
+    
+// //     // Bersihkan URL dari parameter error
+// //     const cleanUrl = window.location.origin + window.location.pathname;
+// //     window.history.replaceState({}, document.title, cleanUrl);
+// //   }
+// }, [location]);
+
+// // Di component/page yang menerima token
+// useEffect(() => {
+//   console.log('Full URL:', window.location.href);
+//   console.log('Search params:', window.location.search);
   
-      if (authUser) {
-        if (authUser.user.role === 'admin') {
-          navigate('/dashboard/home');
-        } else {
-          navigate('/user/belanja');
-        }
-      }
-    }, [navigate]);
+//   const urlParams = new URLSearchParams(window.location.search);
+//   const token = urlParams.get('token');
+  
+//   if (token) {
+//     console.log('Token found:', token);
+//     // Simpan token ke localStorage atau state
+//     localStorage.setItem('token', token);
+//     // Redirect ke halaman utama
+//     window.location.href = '/';
+//   } else {
+//     console.log('No token found in URL');
+//   }
+// }, []);
 
-  useEffect(() => {
-  const queryParams = new URLSearchParams(location.search);
-  const token = queryParams.get('token');
-  const error = queryParams.get('error');
-  const message = queryParams.get('message');
-
-  if (token) {
-    const userData = jwtDecode(token);
-    localStorage.setItem("authUser", JSON.stringify({user: userData}));
-    localStorage.setItem('token', token);
-    
-    // Redirect ke halaman sebelumnya atau home
-    const preLoginPath = localStorage.getItem('preLoginPath') || '/';
-    localStorage.removeItem('preLoginPath');
-    window.location.href = preLoginPath;
-  }
-
-  if (error) {
-    if (error === 'provider_mismatch' && message) {
-      toast.error(decodeURIComponent(message));
-    } else {
-      toast.error('Google login failed');
-    }
-    
-    // Bersihkan URL dari parameter error
-    const cleanUrl = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
-  }
-}, [location]);
+    // useEffect(() => {
+    //   const authUser = JSON.parse(localStorage.getItem('authUser'));
+  
+    //   if (authUser) {
+    //     if (authUser.role === 'admin') {
+    //       navigate('/dashboard/home');
+    //     } else {
+    //       navigate('/user/belanja');
+    //     }
+    //   }
+    // }, [navigate]);
 
   // Handle login
   const handleLogin = async (e) => {
@@ -79,7 +102,7 @@ export default function Login() {
       
       toast.success("Login berhasil!");
       
-      if (user?.user?.role === "admin") {
+      if (user?.role === "admin") {
         navigate("/dashboard");
       } else {
         navigate("/user/belanja");
@@ -139,7 +162,7 @@ export default function Login() {
   });
   const encodedState = encodeURIComponent(state);
   
-  window.location.href = `https://batarirtnbantaeng.cloud/auth/google?state=${encodedState}&role=${selectedRole}`;
+  window.location.href = `http://localhost:8001/auth/google?state=${encodedState}&role=${selectedRole}`;
 };
 
   return (

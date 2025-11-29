@@ -166,9 +166,14 @@ const useVariantStore = create((set, get) => ({
     fetchVariantsByProductId: async(productId) => {
         set({ isLoading: true });
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             const res = await axios.get(`http://localhost:8001/api/variants/${productId}`, {
                 headers: {
-                    Authorization: `Bearer ${get().authUser?.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -192,11 +197,16 @@ const useVariantStore = create((set, get) => ({
     fetchVariantById: async(id) => {
         set({ isLoading: true });
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             // PERBAIKAN: Gunakan endpoint yang sesuai untuk get single variant
             // Anda mungkin perlu membuat endpoint khusus atau menggunakan endpoint index dengan filter
             const res = await axios.get(`http://localhost:8001/api/variants`, {
                 headers: {
-                    Authorization: `Bearer ${get().authUser?.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -219,6 +229,11 @@ const useVariantStore = create((set, get) => ({
     createVariant: async(variantData) => {
         set({ isLoading: true });
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             const formData = new FormData();
 
             // Append data dengan key yang sesuai dengan backend
@@ -244,7 +259,7 @@ const useVariantStore = create((set, get) => ({
             const res = await axios.post("http://localhost:8001/api/variants", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${get().authUser?.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -268,6 +283,11 @@ const useVariantStore = create((set, get) => ({
     updateVariant: async(id, variantData) => {
         set({ isLoading: true });
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             const formData = new FormData();
 
             // PERBAIKAN: Sesuaikan dengan field yang diharapkan backend
@@ -297,7 +317,7 @@ const useVariantStore = create((set, get) => ({
             const res = await axios.put(`http://localhost:8001/api/variants/${id}`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${get().authUser?.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -320,11 +340,16 @@ const useVariantStore = create((set, get) => ({
     deleteVariant: async(variantId, productId) => {
         set({ isLoading: true });
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             // PERBAIKAN: Sesuai dengan backend yang mengharapkan variantId di body
             await axios.delete(`http://localhost:8001/api/variants/delete`, {
                 data: { variantId }, // Kirim variantId di body
                 headers: {
-                    Authorization: `Bearer ${get().authUser?.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 

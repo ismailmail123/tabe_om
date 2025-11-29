@@ -1,7 +1,7 @@
 export const getRole = () => {
     const user = JSON.parse(localStorage.getItem("authUser"))
         // console.log("Auth User:", user.role)
-    return user.user.role || null
+    return user.role || user.user.role || null
 }
 
 export const isLoggedIn = () => {

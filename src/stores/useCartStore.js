@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import axios from "axios";
+import axiosInstance from "../lib/axios";
 
 const useCartStore = create(
 
@@ -15,13 +16,13 @@ const useCartStore = create(
 
         fetchCarts: async() => {
             try {
-                const token = get().authUser.token
+                const token = localStorage.getItem("token");
                 if (!token) {
                     console.error("Token not found. Unable to fetch carts.");
                     return;
                 }
 
-                const response = await axios.get("http://localhost:8001/api/carts", {
+                const response = await axiosInstance.get("/carts", {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -32,14 +33,14 @@ const useCartStore = create(
             }
         },
         removeCartItem: async(itemId) => {
-            const token = get().token;
+            const token = localStorage.getItem("token");
             if (!token) {
                 console.error("Token not found. Unable to remove item from cart.");
                 return;
             }
 
             try {
-                await axios.delete(`http://localhost:8001/api/carts/${itemId}`, {
+                await axiosInstance.delete(`/carts/${itemId}`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -108,7 +109,7 @@ const useCartStore = create(
                 throw new Error("Item produk tidak valid"); // Lempar error
             }
 
-            const token = get().authUser.token;
+            const token = localStorage.getItem("token");;
             if (!token) {
                 console.error("Token not found. Unable to add item to cart.");
                 throw new Error("Silakan login terlebih dahulu"); // Lempar error
@@ -121,8 +122,8 @@ const useCartStore = create(
             }
 
             try {
-                const response = await axios.post(
-                    "http://localhost:8001/api/carts", {
+                const response = await axiosInstance.post(
+                    "/carts", {
                         variant_id: item.id,
                         quantity: 1
                     }, {
@@ -158,7 +159,7 @@ const useCartStore = create(
         },
 
         decrementCartItemQuantity: async(itemId) => {
-            const token = get().authUser.token
+            const token = localStorage.getItem("token");
             if (!token) {
                 console.error("Token not found. Unable to update item quantity.");
                 return;
@@ -178,8 +179,8 @@ const useCartStore = create(
             const newQuantity = cartItem.quantity - 1;
 
             try {
-                const response = await axios.put(
-                    `http://localhost:8001/api/carts/${itemId}`, { quantity: newQuantity }, {
+                const response = await axiosInstance.put(
+                    `/carts/${itemId}`, { quantity: newQuantity }, {
                         headers: {
                             Authorization: `Bearer ${token}`,
                         }
@@ -204,7 +205,7 @@ const useCartStore = create(
             }
         },
         incrementCartItemQuantity: async(itemId) => {
-            const token = get().authUser.token;
+            const token = localStorage.getItem("token");;
             if (!token) {
                 console.error("Token not found. Unable to update item quantity.");
                 return;
@@ -219,7 +220,7 @@ const useCartStore = create(
             const newQuantity = cartItem.quantity + 1;
 
             try {
-                const response = await axios.put(`http://localhost:8001/api/carts/${itemId}`, { quantity: newQuantity }, {
+                const response = await axiosInstance.put(`/carts/${itemId}`, { quantity: newQuantity }, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     }

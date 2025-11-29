@@ -21,6 +21,7 @@ import CategoryForm from "../pages/Admin/manajement/AddCategory";
 import CategoryDetail from "../pages/Admin/manajement/DetailCategory";
 import CategoryList from "../pages/Admin/manajement/CategoryList";
 import UserManajement from "../pages/Admin/manajement/UserManajement";
+import AuthCallback from "../pages/Login/AuthCallback";
 
 import { isLoggedIn, getRole } from "../utils/auth";
 
@@ -34,11 +35,14 @@ const ProtectedRoute = ({ children, role }) => {
 };
 
 const RoutesIndex = () => {
+  
   return (
+    
     <Routes>
       {/* 🌐 Halaman umum */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
 
       {/* 👨‍💼 Halaman Admin */}
       <Route

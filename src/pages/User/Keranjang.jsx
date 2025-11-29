@@ -4,7 +4,7 @@ import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft, CreditCard } from "lucide
 import { Checkbox } from "../../components/ui/checkbox";
 import useAuthStore from "../../stores/useAuthStore";
 import useCartStore from "../../stores/useCartStore";
-import useOrderStore from "../../stores/useOrderStore"; // Import useOrderStore
+import useOrderStore from "../../stores/useOrderStore";
 import toast, { Toaster } from "react-hot-toast";
 
 const CartItem = ({
@@ -214,7 +214,6 @@ const CartItem = ({
   );
 };
 
-// Komponen Pembayaran yang sudah diintegrasikan dengan useOrderStore
 const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
   const [form, setForm] = useState({
     nama: "",
@@ -224,6 +223,7 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
     catatan: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("virtual_account");
   
   const { createOrder } = useOrderStore();
   const { removeCartItem, clearSelectedCart } = useCartStore();
@@ -231,7 +231,17 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
   const formatRupiah = (n) =>
     "Rp " + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
-  const total = cartItems.reduce((sum, item) => sum + item.variant?.price * item.quantity, 0);
+  // Pastikan cartItems selalu array dan hitung total dengan aman
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  const subtotal = safeCartItems.reduce((sum, item) => {
+    const price = item?.variant?.price || 0;
+    const quantity = item?.quantity || 0;
+    return sum + (price * quantity);
+  }, 0);
+
+  // Hitung biaya admin berdasarkan metode pembayaran
+  const adminFee = paymentMethod === "virtual_account" ? 5000 : Math.round(subtotal * 0.01);
+  const total = subtotal + adminFee;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -240,11 +250,11 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
     try {
       // Prepare data for order creation
       const orderData = {
-        items: cartItems.map(item => ({
+        items: safeCartItems.map(item => ({
           variant_id: item.variant?.id,
           quantity: item.quantity
         })),
-        payment_method: "transfer", // Default payment method
+        payment_method: paymentMethod,
         wbp_name: form.nama,
         wbp_room: form.blok,
         wbp_register_number: form.nomorRegister,
@@ -255,9 +265,18 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
       // Create order using useOrderStore
       const result = await createOrder(orderData);
 
-      if (result.status === 'success') {
-        // Remove ordered items from cart
-        cartItems.forEach(item => {
+      console.log("Order creation result:", result);
+
+      if (result.status === "success") {
+        // Untuk pembayaran transfer - redirect ke Midtrans
+        if ((paymentMethod === 'virtual_account' || paymentMethod === 'qris') && result.data.payment.payment_url) {
+          // Redirect otomatis ke halaman pembayaran Midtrans
+          window.location.href = result.data.payment.payment_url;
+          return;
+        }
+        
+        // Untuk pembayaran lainnya
+        safeCartItems.forEach(item => {
           removeCartItem(item.id);
         });
         clearSelectedCart();
@@ -276,15 +295,17 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
         });
         localStorage.setItem("adminNotifications", JSON.stringify(adminNotifs));
 
-        toast.success("✅ Pembayaran berhasil dikonfirmasi! Menunggu verifikasi admin.");
+        toast.success("✅ Pesanan berhasil dibuat!");
         
         if (onSuccess) {
           onSuccess();
         }
+      } else {
+        toast.error(result.message || "Gagal membuat pesanan");
       }
     } catch (error) {
       console.error("Order creation error:", error);
-      // Error message is already handled in useOrderStore
+      toast.error("Terjadi kesalahan saat membuat pesanan");
     } finally {
       setIsSubmitting(false);
     }
@@ -308,6 +329,56 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Pilihan Metode Pembayaran */}
+          <div className="border-b pb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Pilih Metode Pembayaran
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Virtual Account */}
+              <div
+                className={`border-2 rounded-lg p-4 cursor-pointer transition ${
+                  paymentMethod === 'virtual_account' 
+                    ? 'border-green-500 bg-green-50' 
+                    : 'border-gray-300 hover:border-green-300'
+                }`}
+                onClick={() => setPaymentMethod('virtual_account')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-4 h-4 rounded-full border-2 ${
+                    paymentMethod === 'virtual_account' 
+                      ? 'bg-green-500 border-green-500' 
+                      : 'border-gray-400'
+                  }`}></div>
+                  <div>
+                    <p className="font-semibold">Virtual Account</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* QRIS */}
+              <div
+                className={`border-2 rounded-lg p-4 cursor-pointer transition ${
+                  paymentMethod === 'qris' 
+                    ? 'border-green-500 bg-green-50' 
+                    : 'border-gray-300 hover:border-green-300'
+                }`}
+                onClick={() => setPaymentMethod('qris')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-4 h-4 rounded-full border-2 ${
+                    paymentMethod === 'qris' 
+                      ? 'bg-green-500 border-green-500' 
+                      : 'border-gray-400'
+                  }`}></div>
+                  <div>
+                    <p className="font-semibold">QRIS</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Input Nama WBP */}
           <div>
             <label className="block text-gray-700 font-medium mb-2">
@@ -402,7 +473,7 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Ringkasan Pembelian
             </h3>
-            {cartItems.map((item) => (
+            {safeCartItems.map((item) => (
               <div
                 key={item.id}
                 className="flex justify-between items-center text-gray-700 mb-2"
@@ -412,14 +483,35 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
                   <span className="text-sm text-gray-500">x{item.quantity}</span>
                 </span>
                 <span className="font-medium">
-                  {formatRupiah(item.variant?.price * item.quantity)}
+                  {formatRupiah((item.variant?.price || 0) * item.quantity)}
                 </span>
               </div>
             ))}
-            <div className="flex justify-between mt-4 text-lg font-semibold">
-              <span>Total Pembayaran</span>
-              <span className="text-green-700">{formatRupiah(total)}</span>
+            
+            <div className="border-t mt-4 pt-4 space-y-2">
+              <div className="flex justify-between text-gray-700">
+                <span>Subtotal</span>
+                <span>{formatRupiah(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Biaya Admin ({paymentMethod === 'virtual_account' ? 'Rp 5.000' : '1%'})</span>
+                <span>{formatRupiah(adminFee)}</span>
+              </div>
+              <div className="flex justify-between mt-2 text-lg font-semibold">
+                <span>Total Pembayaran</span>
+                <span className="text-green-700">{formatRupiah(total)}</span>
+              </div>
             </div>
+          </div>
+
+          {/* Informasi Pembayaran */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-yellow-800">
+              {paymentMethod === 'virtual_account' 
+                ? 'Setelah mengkonfirmasi, Anda akan diarahkan ke halaman pembayaran Virtual Account.'
+                : 'Setelah mengkonfirmasi, Anda akan diarahkan ke halaman pembayaran QRIS.'
+              }
+            </p>
           </div>
 
           {/* Tombol Submit */}
@@ -427,11 +519,18 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-medium transition ${
-                isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+              className={`px-6 py-2.5 rounded-lg font-medium transition ${
+                isSubmitting 
+                  ? "bg-gray-400 cursor-not-allowed text-white" 
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
             >
-              {isSubmitting ? "Memproses..." : "Konfirmasi Pembayaran"}
+              {isSubmitting 
+                ? "Memproses..." 
+                : paymentMethod === 'virtual_account' 
+                  ? "Bayar dengan Virtual Account" 
+                  : "Bayar dengan QRIS"
+              }
             </button>
           </div>
         </form>
@@ -465,18 +564,23 @@ const Keranjang = () => {
 
   console.log("Cart Items:", cartItems);
 
-  // Group items by seller
-  const groupedItems = cartItems?.reduce((acc, item) => {
-    const sellerId = item.variant?.product?.user_id;
+  // Pastikan cartItems selalu array
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  
+  // Group items by seller dengan safeCartItems
+  const groupedItems = safeCartItems.reduce((acc, item) => {
+    if (!item || !item.variant?.product) return acc;
+    
+    const sellerId = item.variant.product.user_id;
     if (!acc[sellerId]) {
       acc[sellerId] = {
-        sellerName: item.variant?.product?.user?.nama,
+        sellerName: item.variant.product.user?.nama || "Unknown Seller",
         items: [],
         subtotal: 0,
       };
     }
     acc[sellerId].items.push(item);
-    acc[sellerId].subtotal += item.variant?.price * item.quantity;
+    acc[sellerId].subtotal += (item.variant?.price || 0) * (item.quantity || 0);
     return acc;
   }, {});
 
@@ -484,8 +588,7 @@ const Keranjang = () => {
 
   useEffect(() => {
     if (
-      cartItems &&
-      cartItems.length > 0 &&
+      safeCartItems.length > 0 &&
       Object.keys(expandedSellers).length === 0
     ) {
       const initialExpanded = {};
@@ -494,9 +597,9 @@ const Keranjang = () => {
       });
       setExpandedSellers(initialExpanded);
     }
-  }, [cartItems, groupedItems, expandedSellers]);
+  }, [safeCartItems, groupedItems, expandedSellers]);
 
-  const selectedSubtotal = Object.values(groupedItems || {})?.reduce(
+  const selectedSubtotal = Object.values(groupedItems || {}).reduce(
     (sum, seller) => {
       const sellerTotal = seller.items
         .filter(
@@ -510,7 +613,7 @@ const Keranjang = () => {
             (cartItem) => cartItem.id === item.id
           );
           return (
-            s + item.variant?.price * (selectedItem?.quantity || item.quantity)
+            s + (item.variant?.price || 0) * (selectedItem?.quantity || item.quantity || 0)
           );
         }, 0);
       return sum + sellerTotal;
@@ -552,7 +655,7 @@ const Keranjang = () => {
     navigate("/user/history");
   };
 
-  const totalAvailableItems = cartItems.filter(
+  const totalAvailableItems = safeCartItems.filter(
     (item) => item.variant?.stock > 0 && !item.variant?.is_delete
   ).length;
 
@@ -567,7 +670,7 @@ const Keranjang = () => {
     );
   }
 
-  if (cartItems.length === 0) {
+  if (safeCartItems.length === 0) {
     return (
       <>
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 text-gray-700 font-['Poppins']">

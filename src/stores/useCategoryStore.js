@@ -11,7 +11,7 @@
 //     fetchCategories: async() => {
 //         set({ isLoading: true });
 //         try {
-//             const res = await axios.get("http://localhost:8001/api/categories", {
+//             const res = await axiosInstance.get("/categories", {
 //                 headers: {
 //                     Authorization: `Bearer ${get().authUser.token}`,
 //                 },
@@ -28,7 +28,7 @@
 //     createCategory: async(categoryData) => {
 //         set({ isLoading: true });
 //         try {
-//             const res = await axios.post("http://localhost:8001/api/categories", categoryData, {
+//             const res = await axiosInstance.post("/categories", categoryData, {
 //                 headers: {
 //                     Authorization: `Bearer ${get().authUser.token}`,
 //                 },
@@ -52,6 +52,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import axios from "axios";
+import axiosInstance from "../lib/axios";
 
 const useCategoryStore = create((set, get) => ({
     authUser: JSON.parse(localStorage.getItem("authUser")) || null,
@@ -59,13 +60,20 @@ const useCategoryStore = create((set, get) => ({
     categories: [],
     selectedCategory: null,
 
+
     // 🟢 Fetch semua kategori
     fetchCategories: async() => {
         set({ isLoading: true });
+
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             const res = await axios.get("http://localhost:8001/api/categories", {
                 headers: {
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
             set({ categories: res.data.data });
@@ -80,9 +88,14 @@ const useCategoryStore = create((set, get) => ({
     fetchCategoryById: async(id) => {
         set({ isLoading: true });
         try {
-            const res = await axios.get(`http://localhost:8001/api/categories/${id}`, {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
+            const res = await axiosInstance.get(`/categories/${id}`, {
                 headers: {
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
             set({ selectedCategory: res.data.data });
@@ -99,9 +112,14 @@ const useCategoryStore = create((set, get) => ({
     createCategory: async(categoryData) => {
         set({ isLoading: true });
         try {
-            const res = await axios.post("http://localhost:8001/api/categories", categoryData, {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
+            const res = await axiosInstance.post("/categories", categoryData, {
                 headers: {
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
             toast.success("Kategori berhasil ditambahkan");
@@ -119,9 +137,14 @@ const useCategoryStore = create((set, get) => ({
     updateCategory: async(id, formData) => {
         set({ isLoading: true });
         try {
-            const res = await axios.put(`http://localhost:8001/api/categories/${id}`, formData, {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
+            const res = await axiosInstance.put(`/categories/${id}`, formData, {
                 headers: {
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
             toast.success("Kategori berhasil diupdate");
@@ -139,10 +162,15 @@ const useCategoryStore = create((set, get) => ({
     deleteCategory: async(categoryId) => {
         set({ isLoading: true });
         try {
-            await axios.delete(`http://localhost:8001/api/categories/delete`, {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
+            await axiosInstance.delete(`/categories/delete`, {
                 data: { categoryId },
                 headers: {
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
             toast.success("Kategori berhasil dihapus");

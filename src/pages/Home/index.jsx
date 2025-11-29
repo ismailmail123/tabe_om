@@ -8,7 +8,7 @@ const KoperasiRutan = () => {
     const authUser = JSON.parse(localStorage.getItem('authUser'));
 
     if (authUser) {
-      if (authUser.user.role === 'admin') {
+      if (authUser.role === 'admin') {
         navigate('/dashboard/home');
       } else {
         navigate('/user/belanja');

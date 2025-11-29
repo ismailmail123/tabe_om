@@ -19,6 +19,8 @@ function UserDetail() {
         };
     }, [id, fetchUserDetail, clearUserDetail]);
 
+    console.log("user id", userDetail)
+
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('id-ID', {

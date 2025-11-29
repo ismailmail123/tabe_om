@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import axios from "axios";
+import axiosInstance from "../lib/axios";
 
 const useProductStore = create((set, get) => ({
     authUser: JSON.parse(localStorage.getItem("authUser")) || null,
@@ -8,13 +9,20 @@ const useProductStore = create((set, get) => ({
     products: [],
     productDetail: null,
 
+
+
     // 🟢 Fetch semua produk
     fetchProducts: async() => {
         set({ isLoading: true });
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             const res = await axios.get("http://localhost:8001/api/products", {
                 headers: {
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
             set({ products: res.data.data });
@@ -30,9 +38,14 @@ const useProductStore = create((set, get) => ({
     fetchProductById: async(id) => {
         set({ isLoading: true });
         try {
-            const res = await axios.get(`http://localhost:8001/api/products/${id}`, {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
+            const res = await axiosInstance.get(`/products/${id}`, {
                 headers: {
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
             set({ productDetail: res.data.data });
@@ -48,6 +61,11 @@ const useProductStore = create((set, get) => ({
     createProduct: async(productData) => {
         set({ isLoading: true });
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             const formData = new FormData();
 
             // Append semua field ke FormData
@@ -60,10 +78,10 @@ const useProductStore = create((set, get) => ({
                 formData.append('img_url', productData.image);
             }
 
-            const res = await axios.post("http://localhost:8001/api/products", formData, {
+            const res = await axiosInstance.post("/products", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -83,6 +101,11 @@ const useProductStore = create((set, get) => ({
     updateProduct: async(id, productData) => {
         set({ isLoading: true });
         try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
             const formData = new FormData();
 
             formData.append('category_id', productData.category_id);
@@ -97,10 +120,10 @@ const useProductStore = create((set, get) => ({
                 formData.append('img_url', productData.image);
             }
 
-            const res = await axios.put(`http://localhost:8001/api/products/${id}`, formData, {
+            const res = await axiosInstance.put(`/products/${id}`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -120,9 +143,14 @@ const useProductStore = create((set, get) => ({
     deleteProduct: async(id) => {
         set({ isLoading: true });
         try {
-            await axios.delete(`http://localhost:8001/api/products/${id}/delete`, {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
+            await axiosInstance.delete(`/products/${id}/delete`, {
                 headers: {
-                    Authorization: `Bearer ${get().authUser.token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -142,10 +170,15 @@ const useProductStore = create((set, get) => ({
     updateProductAvailability: async(productId, availability) => {
         set({ isLoading: true });
         try {
-            const res = await axios.put(
-                "http://localhost:8001/api/products/update", { productId, availability }, {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                toast.error("Anda harus login terlebih dahulu");
+                throw new Error("User not authenticated");
+            }
+            const res = await axiosInstance.put(
+                "/products/update", { productId, availability }, {
                     headers: {
-                        Authorization: `Bearer ${get().authUser.token}`,
+                        Authorization: `Bearer ${token}`,
                     },
                 }
             );

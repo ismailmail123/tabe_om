@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
-import { logout } from "../utils/auth"
+// import { logout } from "../utils/auth"
 import { Menu, X, LogOut, ShoppingBag, Clock, ShoppingCart, User, Home } from "lucide-react"
+import useAuthStore from "../stores/useAuthStore"
 
 export default function SidebarUser() {
   const navigate = useNavigate()
@@ -11,6 +12,8 @@ export default function SidebarUser() {
   const [open, setOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [cartItemsCount, setCartItemsCount] = useState(0)
+
+  const logout = useAuthStore((state) => state.logout);
 
   // Handle responsive behavior
   useEffect(() => {

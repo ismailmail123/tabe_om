@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import axios from "axios";
+import axiosInstance from "../lib/axios";
 
 const useOrderStore = create((set, get) => ({
     authUser: JSON.parse(localStorage.getItem("authUser")) || null,
@@ -9,14 +10,9 @@ const useOrderStore = create((set, get) => ({
     orders: [],
     orderById: null,
 
-    // Fungsi untuk mendapatkan token
-    getToken: () => {
-        const authUser = JSON.parse(localStorage.getItem("authUser")) || null;
-        return authUser.token || null;
-    },
 
     createOrder: async(orderData) => {
-        const token = get().getToken();
+        const token = localStorage.getItem("token");
         if (!token) {
             toast.error("Anda harus login terlebih dahulu");
             throw new Error("User not authenticated");
@@ -26,8 +22,8 @@ const useOrderStore = create((set, get) => ({
             console.log("Creating order with data:", orderData);
             console.log("Using token:", token);
 
-            const response = await axios.post(
-                "http://localhost:8001/api/orders",
+            const response = await axiosInstance.post(
+                "/orders",
                 orderData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -38,7 +34,7 @@ const useOrderStore = create((set, get) => ({
                 }
             );
 
-            const responseData = response.data;
+            const responseData = response.data.data;
             console.log("Order created successfully:", responseData);
 
             // Clear selected cart items
@@ -73,13 +69,13 @@ const useOrderStore = create((set, get) => ({
     // ... fungsi lainnya tetap sama
     // fetchOrder: async() => {
     //     try {
-    //         const token = get().getToken();
+    //         const token = localStorage.getItem("token");
     //         if (!token) {
     //             console.error("Token not found. Unable to fetch orders.");
     //             return;
     //         }
 
-    //         const response = await axios.get("http://localhost:8001/api/orders", {
+    //         const response = await axiosInstance.get("/orders", {
     //             headers: {
     //                 Authorization: `Bearer ${token}`,
     //             },
@@ -93,13 +89,13 @@ const useOrderStore = create((set, get) => ({
 
     fetchOrder: async() => {
         try {
-            const token = get().getToken();
+            const token = localStorage.getItem("token");
             if (!token) {
                 console.error("Token not found. Unable to fetch orders.");
                 return [];
             }
 
-            const response = await axios.get("http://localhost:8001/api/orders", {
+            const response = await axiosInstance.get("/orders", {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -128,15 +124,15 @@ const useOrderStore = create((set, get) => ({
 
     // Update order status
     // updateOrderStatus: async(orderId, status) => {
-    //     const token = get().getToken();
+    //     const token = localStorage.getItem("token");
     //     if (!token) {
     //         toast.error("Anda harus login terlebih dahulu");
     //         throw new Error("User not authenticated");
     //     }
 
     //     try {
-    //         const response = await axios.put(
-    //             `http://localhost:8001/api/orders/${orderId}/status`, { status }, {
+    //         const response = await axiosInstance.put(
+    //             `/orders/${orderId}/status`, { status }, {
     //                 headers: {
     //                     Authorization: `Bearer ${token}`,
     //                     "Content-Type": "application/json",
@@ -160,7 +156,7 @@ const useOrderStore = create((set, get) => ({
     //     }
     // },
     updateOrderStatus: async(orderId, status, formData = null) => {
-        const token = get().getToken();
+        const token = localStorage.getItem("token");
         if (!token) {
             toast.error("Anda harus login terlebih dahulu");
             throw new Error("User not authenticated");
@@ -185,8 +181,8 @@ const useOrderStore = create((set, get) => ({
             console.log("Sending update request for order:", orderId);
             console.log("Request data:", requestData);
 
-            const response = await axios.put(
-                `http://localhost:8001/api/orders/${orderId}/status`,
+            const response = await axiosInstance.put(
+                `/orders/${orderId}/status`,
                 requestData, {
                     headers: headers,
                     withCredentials: false,
@@ -211,14 +207,14 @@ const useOrderStore = create((set, get) => ({
     },
 
     fetchOrderById: async(orderId) => {
-        const token = get().getToken();
+        const token = localStorage.getItem("token");
         if (!token) {
             console.error("Token not found. Unable to fetch order.");
             return;
         }
 
         try {
-            const response = await axios.get(`http://localhost:8001/api/orders/${orderId}`, {
+            const response = await axiosInstance.get(`/orders/${orderId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -234,7 +230,7 @@ const useOrderStore = create((set, get) => ({
     setOrders: (orders) => set({ orders }),
 
     cancelOrder: async(orderId, setError) => {
-        const token = get().getToken();
+        const token = localStorage.getItem("token");
         if (!token) {
             console.error("Token not found. Unable to cancel order.");
             setError("Token not found. Unable to cancel order.");
@@ -242,8 +238,8 @@ const useOrderStore = create((set, get) => ({
         }
 
         try {
-            const response = await axios.put(
-                `http://localhost:8001/api/orders/${orderId}/cancel`,
+            const response = await axiosInstance.put(
+                `/orders/${orderId}/cancel`,
                 null, {
                     headers: {
                         Authorization: `Bearer ${token}`,
