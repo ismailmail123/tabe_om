@@ -268,7 +268,8 @@ function UserManagement() {
         fetchUsers, 
         deleteUser, 
         verifyUser, // Ganti verifyUserEmail dengan verifyUser
-        fetchUserDetail 
+        fetchUserDetail,
+        activeUser
     } = useUserStore();
 
     
@@ -285,6 +286,12 @@ function UserManagement() {
     const handleDelete = (userId) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             deleteUser(userId);
+        }
+    };
+
+    const handleActivation = (userId) => {
+        if (window.confirm('Are you sure you want to activation this user?')) {
+            activeUser(userId);
         }
     };
 
@@ -427,12 +434,23 @@ function UserManagement() {
                                                     Verify Email
                                                 </button>
                                             )}
-                                            <button
+                                            {
+                                                user.is_delete ? (
+                                                <button
+                                                onClick={() => handleActivation(user.id)}
+                                                className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded text-xs"
+                                            >
+                                                Aktifkan
+                                            </button>) :(
+                                                <button
                                                 onClick={() => handleDelete(user.id)}
                                                 className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded text-xs"
                                             >
-                                                Delete
+                                                Non Aktifkan
                                             </button>
+                                            )
+                                            }
+                                            
                                         </div>
                                     </td>
                                 </tr>

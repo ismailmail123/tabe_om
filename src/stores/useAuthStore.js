@@ -66,6 +66,29 @@ const useAuthStore = create(
             }
         },
 
+        activeUser: async(userId) => {
+            try {
+                const token = localStorage.getItem("token");
+
+                const config = {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                const response = await axiosInstance.put("/users/aktif", { userId },
+                    config
+                );
+                toast.success("User activated successfully");
+                get().fetchUsers();
+            } catch (error) {
+                console.error("❌ Activation error:", error);
+                console.error("Error response:", error.response);
+                toast.error(error.response.data.message || "Failed to activate user");
+            }
+        },
+
         // Fungsi untuk verifikasi email user
         verifyUserEmail: async(email, kode_verifikasi) => {
             set({ loading: true });
