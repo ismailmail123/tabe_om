@@ -103,43 +103,7 @@ const VariantForm = ({ product, variant, onClose, onSuccess, fetchProductById })
     return Object.keys(newErrors).length === 0;
   };
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-    
-  //   if (!validateForm()) {
-  //     toast.error("Harap perbaiki error pada form");
-  //     return;
-  //   }
-
-  //   try {
-  //     const submitData = {
-  //       product_id: product.id,
-  //       name: formData.name.trim(),
-  //       price: parseFloat(formData.price),
-  //       stock: parseInt(formData.stock),
-  //       sku: formData.sku.trim(),
-  //       image: imageFile
-  //     };
-
-  //     if (variant) {
-  //       // Update existing variant
-  //       await updateVariant(variant.id, submitData);
-  //       toast.success("Variant berhasil diupdate");
-        
-  //     } else {
-  //       // Create new variant
-  //       await createVariant(submitData);
-  //       toast.success("Variant berhasil ditambahkan");
-  //     }
-      
-  //     onSuccess();
-  //     fetchProductById(product.id); // Refresh product to reflect variant changes
-  //   } catch (error) {
-  //     console.error("Error submitting variant:", error);
-  //     // Error message already handled in store
-  //   }
-  // };
-// Di VariantForm.jsx, pada bagian handleSubmit setelah sukses:
+  
 const handleSubmit = async (e) => {
   e.preventDefault();
   
