@@ -3,6 +3,7 @@ import { Clock, Info, X, Image as ImageIcon, CreditCard, Wallet, ChevronDown, Ch
 import useOrderStore from "../../stores/useOrderStore"
 import usePaymentStore from "../../stores/usePaymentStore"
 import toast from "react-hot-toast"
+import { useNavigate } from "react-router-dom"
 
 export default function History() {
   const [selected, setSelected] = useState(null)
@@ -12,6 +13,8 @@ export default function History() {
   const [expandedOrder, setExpandedOrder] = useState(null)
   
   const { orders, fetchOrder } = useOrderStore()
+
+  const navigate = useNavigate()
   const { 
     createPayment, 
     fetchPaymentByOrderId, 
@@ -219,7 +222,8 @@ export default function History() {
                     </td>
                     <td className="py-2 px-4 border-b text-center">
                       <button
-                        onClick={() => handleViewDetail(order)}
+                        // onClick={() => handleViewDetail(order)}
+                        onClick={()=> navigate(`/user/payment/${order.order_id}`)}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1 mx-auto transition"
                       >
                         <Info size={15} /> Detail

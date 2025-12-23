@@ -213,7 +213,12 @@ const handleAddToCart = async () => {
         {/* Detail produk - TAMPILAN UTAMA DARI KODE PERTAMA */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-blue-100 rounded-lg h-64 flex items-center justify-center text-5xl font-bold text-blue-500">
-            {productDetail.name.split(" ").map((w) => w[0]).join("")}
+            {/* {productDetail.name.split(" ").map((w) => w[0]).join("")} */}
+            <img
+              src={productDetail.img_url || "https://via.placeholder.com/150"}
+              alt={productDetail.name}
+              className="max-h-64 object-contain"
+            />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{productDetail.name}</h1>
@@ -297,7 +302,12 @@ const handleAddToCart = async () => {
               className="bg-white border border-gray-100 rounded-lg p-3 cursor-pointer hover:shadow-md transition"
             >
               <div className="bg-blue-50 rounded-md h-20 flex items-center justify-center text-blue-500 font-bold">
-                {item.name.split(" ").map((w) => w[0]).join("")}
+                {/* {item.name.split(" ").map((w) => w[0]).join("")} */}
+                <img
+                  src={item.img_url || "https://via.placeholder.com/100"}
+                  alt={item.name}
+                  className="max-h-20 object-contain"
+                />
               </div>
               <h3 className="text-sm font-semibold text-gray-800 mt-2">{item.name}</h3>
               <p className="text-blue-600 text-sm">{formatRupiah(item.price)}</p>

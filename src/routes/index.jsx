@@ -22,6 +22,8 @@ import CategoryDetail from "../pages/Admin/manajement/DetailCategory";
 import CategoryList from "../pages/Admin/manajement/CategoryList";
 import UserManajement from "../pages/Admin/manajement/UserManajement";
 import AuthCallback from "../pages/Login/AuthCallback";
+import TransaksiUser from "../pages/User/Transaction";
+import DetailPayment from "../pages/User/DetailPayment";
 
 import { isLoggedIn, getRole } from "../utils/auth";
 
@@ -80,7 +82,9 @@ const RoutesIndex = () => {
         <Route path="keranjang" element={<Keranjang />} />
         <Route path="pembayaran" element={<Pembayaran />} />
         <Route path="history" element={<History />} />
+        <Route path="transaction-histories" element={<TransaksiUser />} />
         <Route path="produk/:id" element={<DetailProduk />} />
+        <Route path="payment/:orderId" element={<DetailPayment />} />
       </Route>
 
       {/* 🚫 Fallback */}
