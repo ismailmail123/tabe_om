@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 1. Buat instance axios dasar dengan withCredentials
 export const axiosInstance = axios.create({
-    baseURL: 'http://localhost:8001/api',
+    baseURL: 'https://batarirtnbantaeng.cloud/api',
     withCredentials: true // Ini penting untuk mengirim cookie
 });
 
@@ -39,7 +39,7 @@ export const setupInterceptors = (logoutFn) => {
             if (error.response.status === 401 && !originalRequest._retry) {
 
                 // Jika error terjadi di endpoint refresh-token, langsung logout
-                if (originalRequest.url.includes('/auth/refresh-token')) {
+                if (originalRequest.url.includes('/auth/v1/refresh-token')) {
                     clearUserData();
                     logoutFunction();
                     return Promise.reject(error);
@@ -62,7 +62,7 @@ export const setupInterceptors = (logoutFn) => {
 
                 try {
                     // Panggil endpoint refresh token (cookie akan otomatis dikirim)
-                    const res = await axiosInstance.post('/auth/refresh-token');
+                    const res = await axiosInstance.post('/auth/v1/refresh-token');
 
                     // Update access token baru
                     const newToken = res.data.token;

@@ -240,7 +240,7 @@ export default function Login() {
     });
     const encodedState = encodeURIComponent(state);
     
-    window.location.href = `http://localhost:8001/auth/google?state=${encodedState}&role=${selectedRole}`;
+    window.location.href = `https://batarirtnbantaeng.cloud/auth/v1/google?state=${encodedState}&role=${selectedRole}`;
   };
 
   return (

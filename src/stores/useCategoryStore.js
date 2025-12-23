@@ -71,7 +71,7 @@ const useCategoryStore = create((set, get) => ({
                 toast.error("Anda harus login terlebih dahulu");
                 throw new Error("User not authenticated");
             }
-            const res = await axios.get("http://localhost:8001/api/categories", {
+            const res = await axios.get("https://batarirtnbantaeng.cloud/api/categories", {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },

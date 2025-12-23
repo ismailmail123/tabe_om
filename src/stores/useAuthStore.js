@@ -93,7 +93,7 @@ const useAuthStore = create(
         verifyUserEmail: async(email, kode_verifikasi) => {
             set({ loading: true });
             try {
-                const res = await axiosInstance.post("/auth/verify-email", {
+                const res = await axiosInstance.post("/auth/v1/verify-email", {
                     email,
                     kode_verifikasi
                 });
@@ -161,7 +161,7 @@ const useAuthStore = create(
         signup: async(data) => {
             set({ isSigningUp: true });
             try {
-                const res = await axiosInstance.post("/auth/register", data);
+                const res = await axiosInstance.post("/auth/v1/register", data);
                 set({ authUser: res.data });
                 localStorage.setItem("authUser", JSON.stringify(res.data)); // Simpan data user di local storage
                 return res.data; // Kembalikan data response
@@ -177,7 +177,7 @@ const useAuthStore = create(
         verify: async(data) => {
             set({ isSigningUp: true });
             try {
-                const res = await axiosInstance.post("/auth/verify-email", data);
+                const res = await axiosInstance.post("/auth/v1/verify-email", data);
                 set({ authUser: res.data });
                 localStorage.setItem("authUser", JSON.stringify(res.data)); // Simpan data user di local storage
             } catch (error) {
@@ -193,7 +193,7 @@ const useAuthStore = create(
         //     set({ isLoggingIn: true });
         //     try {
         //         // PASTIKAN menggunakan axiosInstance, bukan axios biasa
-        //         const res = await axiosInstance.post("/auth/login", data);
+        //         const res = await axiosInstance.post("/auth/v1/login", data);
 
         //         console.log("Login Response:", res.data.data.user);
 
@@ -224,13 +224,13 @@ const useAuthStore = create(
         // // Fungsi untuk logout
         // logout: async() => {
         //     try {
-        //         await axiosInstance.post("/auth/logout"); // Panggil API logout
+        //         await axiosInstance.post("/auth/v1/logout"); // Panggil API logout
         //         set({ authUser: null }); // Reset state authUser ke null
         //         localStorage.removeItem("authUser"); // Hapus data user dari local storage
         //         localStorage.removeItem("token"); // Hapus data user dari local storage
         //         localStorage.removeItem("auth-storage"); // Hapus data user dari local storage
         //         toast.success("Logged out successfully");
-        //         window.location.href = "/auth"; // Redirect ke halaman login
+        //         window.location.href = "/auth/v1"; // Redirect ke halaman login
         //     } catch (error) {
         //         toast.error(error.response.data.message || "Logout failed");
         //     }
@@ -239,7 +239,7 @@ const useAuthStore = create(
         login: async(data) => {
             set({ isLoggingIn: true });
             try {
-                const res = await axiosInstance.post("/auth/login", data);
+                const res = await axiosInstance.post("/auth/v1/login", data);
 
                 console.log("Login Response:", res.data);
 
@@ -270,7 +270,7 @@ const useAuthStore = create(
         // logout: async() => {
         //     try {
         //         // Panggil endpoint logout di backend
-        //         await axiosInstance.post('/auth/logout');
+        //         await axiosInstance.post('/auth/v1/logout');
         //     } catch (error) {
         //         console.error('Logout error:', error);
         //     } finally {
@@ -324,7 +324,7 @@ const useAuthStore = create(
         logout: async() => {
             try {
                 // Panggil endpoint logout di backend
-                const response = await axiosInstance.post('/auth/logout');
+                const response = await axiosInstance.post('/auth/v1/logout');
                 console.log('Logout response:', response.data);
             } catch (error) {
                 console.error('Logout error:', error);
@@ -344,7 +344,7 @@ const useAuthStore = create(
         updateProfile: async(data) => {
             set({ isUpdatingProfile: true });
             try {
-                const res = await axiosInstance.put("/auth/update-profile", data);
+                const res = await axiosInstance.put("/auth/v1/update-profile", data);
                 set({ authUser: res.data });
                 localStorage.setItem("authUser", JSON.stringify(res.data)); // Simpan data user di local storage
                 toast.success("Profile updated successfully");
