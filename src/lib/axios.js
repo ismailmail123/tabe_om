@@ -40,8 +40,8 @@ export const setupInterceptors = (logoutFn) => {
 
                 // Jika error terjadi di endpoint refresh-token, langsung logout
                 if (originalRequest.url.includes('/auth/v1/refresh-token')) {
-                    clearUserData();
-                    logoutFunction();
+                    // clearUserData();
+                    // logoutFunction();
                     return Promise.reject(error);
                 }
 
@@ -64,6 +64,8 @@ export const setupInterceptors = (logoutFn) => {
                     // Panggil endpoint refresh token (cookie akan otomatis dikirim)
                     const res = await axiosInstance.post('/auth/v1/refresh-token');
 
+                    console.log('Token refreshed di lib axios', res.data);
+
                     // Update access token baru
                     const newToken = res.data.token;
                     localStorage.setItem('token', newToken);
@@ -80,8 +82,8 @@ export const setupInterceptors = (logoutFn) => {
                 } catch (refreshError) {
                     console.error('Refresh token failed:', refreshError);
                     processQueue(refreshError, null);
-                    clearUserData();
-                    logoutFunction();
+                    // clearUserData();
+                    // logoutFunction();
                     return Promise.reject(refreshError);
                 } finally {
                     isRefreshing = false;
