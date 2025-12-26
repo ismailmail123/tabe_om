@@ -354,25 +354,13 @@ export default function History() {
                     {/* Tombol Aksi */}
                     <div className="flex gap-2 pt-2">
                       <button
-                        onClick={() => handleViewDetail(order)}
+                        // onClick={() => handleViewDetail(order)}
+                        onClick={()=> navigate(`/user/payment/${order.order_id}`)}
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-xs font-medium flex items-center justify-center gap-1 transition"
                       >
                         <Info size={12} />
                         Detail Lengkap
                       </button>
-                      
-                      {needsPayment(order) && (
-                        <button
-                          onClick={() => {
-                            setSelected(order)
-                            setShowPaymentModal(true)
-                          }}
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-xs font-medium flex items-center justify-center gap-1 transition"
-                        >
-                          <CreditCard size={12} />
-                          Bayar
-                        </button>
-                      )}
                     </div>
                   </div>
                 )}
