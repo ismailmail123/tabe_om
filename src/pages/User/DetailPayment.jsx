@@ -854,28 +854,41 @@ const PaymentDetail = () => {
 
   console.log("ini order", order)
 
-  // Fungsi untuk menyalin total pembayaran
-  const copyTotalPayment = () => {
-    const totalText = formatCurrency(order.total);
-    navigator.clipboard.writeText(`${totalText}`)
-      .then(() => {
-        setCopiedTotal(true);
-        toast.success("Total pembayaran berhasil disalin!");
-        setTimeout(() => setCopiedTotal(false), 2000);
-      })
-      .catch(err => {
-        console.error('Gagal menyalin: ', err);
-        const textArea = document.createElement('textarea');
-        textArea.value = `${totalText}`;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        setCopiedTotal(true);
-        toast.success("Total pembayaran berhasil disalin!");
-        setTimeout(() => setCopiedTotal(false), 2000);
-      });
-  };
+  const formatNumber = (amount) => {
+  return new Intl.NumberFormat('id-ID').format(amount);
+};
+
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(amount);
+};
+
+// Dan copyTotalPayment menggunakan formatNumber
+const copyTotalPayment = () => {
+  const totalText = formatNumber(order.total);
+  
+  navigator.clipboard.writeText(`${totalText}`)
+    .then(() => {
+      setCopiedTotal(true);
+      toast.success("Total pembayaran berhasil disalin!");
+      setTimeout(() => setCopiedTotal(false), 2000);
+    })
+    .catch(err => {
+      console.error('Gagal menyalin: ', err);
+      const textArea = document.createElement('textarea');
+      textArea.value = `${totalText}`;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopiedTotal(true);
+      toast.success("Total pembayaran berhasil disalin!");
+      setTimeout(() => setCopiedTotal(false), 2000);
+    });
+};
 
   // Informasi rekening bank
   const bankAccounts = [
@@ -991,13 +1004,13 @@ const PaymentDetail = () => {
     });
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+  // const formatCurrency = (amount) => {
+  //   return new Intl.NumberFormat('id-ID', {
+  //     style: 'currency',
+  //     currency: 'IDR',
+  //     minimumFractionDigits: 0
+  //   }).format(amount);
+  // };
 
   const getStatusColor = (status) => {
     switch (status) {

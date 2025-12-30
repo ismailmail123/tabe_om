@@ -150,6 +150,8 @@ export default function Transaksi() {
     try {
       // Fetch data payment dari order
       const paymentData = await fetchPaymentByOrderId(trx.id);
+
+      console.log("Fetched payment data for verification:", paymentData);
       
       if (paymentData) {
         setSelectedPaymentData({
@@ -917,7 +919,7 @@ export default function Transaksi() {
                         )}
 
                         {/* Tombol Verifikasi Pembayaran */}
-                        {trx.paymentMethod === 'transfer' && trx.paymentStatus === 'pending' && (
+                        {trx.paymentMethod === 'transfer' && trx.paymentStatus === 'process' && (
                           <button
                             onClick={() => bukaModalVerifikasi(trx)}
                             className="flex items-center gap-1 text-purple-600 hover:text-purple-800 text-sm"
