@@ -228,38 +228,88 @@ const useOrderStore = create((set, get) => ({
 
     setOrders: (orders) => set({ orders }),
 
+    // cancelOrder: async(orderId, setError, data) => {
+    //     const token = localStorage.getItem("token");
+    //     if (!token) {
+    //         console.error("Token not found. Unable to cancel order.");
+    //         setError("Token not found. Unable to cancel order.");
+    //         return;
+    //     }
+
+    //     try {
+    //         const response = await axiosInstance.put(
+    //             `/orders/${orderId}/cancel`, {
+    //                 order_id: data.order_id,
+    //                 status: data.status,
+    //                 note: data.note || null
+    //             }, {
+    //                 headers: {
+    //                     Authorization: `Bearer ${token}`,
+    //                 },
+    //                 withCredentials: false,
+    //             }
+    //         );
+    //         return response.data;
+    //     } catch (error) {
+    //         console.error("Cancel order error:", error);
+    //         if (error.response.data.message) {
+    //             setError(error.response.data.message);
+    //         } else {
+    //             setError("Failed to cancel order. Please try again.");
+    //         }
+    //         throw error;
+    //     }
+    // },
+
+    // useOrderStore.js
     cancelOrder: async(orderId, setError, data) => {
+        console.log("cancelOrder called with:", { orderId, setError, data });
+
         const token = localStorage.getItem("token");
         if (!token) {
             console.error("Token not found. Unable to cancel order.");
-            setError("Token not found. Unable to cancel order.");
+            if (setError) setError("Token not found. Unable to cancel order.");
             return;
         }
 
         try {
+            console.log("Sending request to backend...");
+
+            // HANYA kirim note sesuai dengan backend
+            const requestBody = {
+                note: data.note || "Order dibatalkan oleh pengguna"
+            };
+
+            console.log("Request body:", requestBody);
+
             const response = await axiosInstance.put(
-                `/orders/${orderId}/cancel`, {
-                    order_id: data.order_id,
-                    status: data.status,
-                    note: data.note || null
-                }, {
+                `/orders/${orderId}/cancel`,
+                requestBody, // Kirim hanya note
+                {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                     withCredentials: false,
                 }
             );
+
+            console.log("Response received:", response.data);
             return response.data;
         } catch (error) {
-            console.error("Cancel order error:", error);
-            if (error.response.data.message) {
-                setError(error.response.data.message);
-            } else {
-                setError("Failed to cancel order. Please try again.");
+            console.error("Cancel order error details:", error);
+            console.error("Error response:", error.response);
+
+            if (setError) {
+                if (error.response && error.response.data && error.response.data.message) {
+                    setError(error.response.data.message);
+                } else {
+                    setError("Failed to cancel order. Please try again.");
+                }
             }
             throw error;
         }
     },
+
 }));
 
 export default useOrderStore;

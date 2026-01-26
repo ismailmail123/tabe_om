@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 1. Buat instance axios dasar dengan withCredentials
 export const axiosInstance = axios.create({
-    baseURL: 'http://localhost:8001/api',
+    baseURL: 'https://batarirtnbantaeng.cloud/api',
     withCredentials: true // Ini penting untuk mengirim cookie
 });
 

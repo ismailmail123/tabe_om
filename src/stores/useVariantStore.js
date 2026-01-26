@@ -12,7 +12,7 @@
 //     fetchVariantsByProductId: async(productId) => {
 //         set({ isLoading: true });
 //         try {
-//             const res = await axios.get(`http://localhost:8001/api/variants/${productId}`, {
+//             const res = await axios.get(`https://batarirtnbantaeng.cloud/api/variants/${productId}`, {
 //                 headers: {
 //                     Authorization: `Bearer ${get().authUser.token}`,
 //                 },
@@ -34,7 +34,7 @@
 //     fetchVariantById: async(id) => {
 //         set({ isLoading: true });
 //         try {
-//             const res = await axios.get(`http://localhost:8001/api/variants/${id}`, {
+//             const res = await axios.get(`https://batarirtnbantaeng.cloud/api/variants/${id}`, {
 //                 headers: {
 //                     Authorization: `Bearer ${get().authUser.token}`,
 //                 },
@@ -63,7 +63,7 @@
 //                 formData.append('image', variantData.image);
 //             }
 
-//             const res = await axios.post("http://localhost:8001/api/variants", formData, {
+//             const res = await axios.post("https://batarirtnbantaeng.cloud/api/variants", formData, {
 //                 headers: {
 //                     "Content-Type": "multipart/form-data",
 //                     Authorization: `Bearer ${get().authUser.token}`,
@@ -101,7 +101,7 @@
 //                 formData.append('img_url', variantData.img_url);
 //             }
 
-//             const res = await axios.put(`http://localhost:8001/api/variants/${id}`, formData, {
+//             const res = await axios.put(`https://batarirtnbantaeng.cloud/api/variants/${id}`, formData, {
 //                 headers: {
 //                     "Content-Type": "multipart/form-data",
 //                     Authorization: `Bearer ${get().authUser.token}`,
@@ -125,7 +125,7 @@
 //     deleteVariant: async(variantId, productId) => {
 //         set({ isLoading: true });
 //         try {
-//             await axios.delete(`http://localhost:8001/api/variants/${variantId}`, {
+//             await axios.delete(`https://batarirtnbantaeng.cloud/api/variants/${variantId}`, {
 //                 data: { variantId }, // Kirim variantId di body untuk DELETE
 //                 headers: {
 //                     Authorization: `Bearer ${get().authUser.token}`,
@@ -171,7 +171,7 @@ const useVariantStore = create((set, get) => ({
                 toast.error("Anda harus login terlebih dahulu");
                 throw new Error("User not authenticated");
             }
-            const res = await axios.get(`http://localhost:8001/api/variants/${productId}`, {
+            const res = await axios.get(`https://batarirtnbantaeng.cloud/api/variants/${productId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -204,7 +204,7 @@ const useVariantStore = create((set, get) => ({
             }
             // PERBAIKAN: Gunakan endpoint yang sesuai untuk get single variant
             // Anda mungkin perlu membuat endpoint khusus atau menggunakan endpoint index dengan filter
-            const res = await axios.get(`http://localhost:8001/api/variants`, {
+            const res = await axios.get(`https://batarirtnbantaeng.cloud/api/variants`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -256,7 +256,7 @@ const useVariantStore = create((set, get) => ({
                 hasImage: !!variantData.image
             });
 
-            const res = await axios.post("http://localhost:8001/api/variants", formData, {
+            const res = await axios.post("https://batarirtnbantaeng.cloud/api/variants", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                     Authorization: `Bearer ${token}`,
@@ -314,7 +314,7 @@ const useVariantStore = create((set, get) => ({
                 hasImage: !!variantData.image
             });
 
-            const res = await axios.put(`http://localhost:8001/api/variants/${id}`, formData, {
+            const res = await axios.put(`https://batarirtnbantaeng.cloud/api/variants/${id}`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                     Authorization: `Bearer ${token}`,
@@ -346,7 +346,7 @@ const useVariantStore = create((set, get) => ({
                 throw new Error("User not authenticated");
             }
             // PERBAIKAN: Sesuai dengan backend yang mengharapkan variantId di body
-            await axios.delete(`http://localhost:8001/api/variants/delete`, {
+            await axios.delete(`https://batarirtnbantaeng.cloud/api/variants/delete`, {
                 data: { variantId }, // Kirim variantId di body
                 headers: {
                     Authorization: `Bearer ${token}`,

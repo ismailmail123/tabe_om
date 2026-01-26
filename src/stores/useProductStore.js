@@ -20,7 +20,7 @@ const useProductStore = create((set, get) => ({
                 toast.error("Anda harus login terlebih dahulu");
                 throw new Error("User not authenticated");
             }
-            const res = await axios.get("http://localhost:8001/api/products", {
+            const res = await axios.get("https://batarirtnbantaeng.cloud/api/products", {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },

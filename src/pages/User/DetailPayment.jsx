@@ -1281,49 +1281,73 @@ const PaymentDetail = () => {
   };
 
   // FUNGSI BATAL PESANAN - Menggunakan verifyPayment dengan status 'cancelled'
-  const handleCancelPesanan = async () => {
-    if (!cancelNote.trim()) {
-      toast.error("Harap berikan alasan pembatalan");
-      return;
-    }
+    const handleCancelPesanan = async () => {
+  if (!cancelNote.trim()) {
+    toast.error("Harap berikan alasan pembatalan");
+    return;
+  }
 
-    setIsCancelling(true);
-    try {
-      const cancelData = {
-        order_id: orderId,
-        status: 'cancelled', // Status cancelled untuk verifikasi pembayaran
-        note: cancelNote.trim(),
-      };
+  // Cek apakah ada payment yang sudah memiliki bukti pembayaran
+  const hasPaymentProof = order.payment?.some(item => 
+    item.proof_of_payment !== null && item.proof_of_payment !== undefined
+  );
 
-      console.log("Membatalkan pesanan dengan data:", cancelData);
+  if (hasPaymentProof) {
+    toast.error("Tidak dapat membatalkan pesanan dengan bukti pembayaran yang sudah diunggah");
+    return;
+  }
 
-      // OPTION 1: Gunakan verifyPayment dari usePaymentStore (mirip dengan verifikasi admin)
-      // await verifyPayment(cancelData);
-      
-      // OPTION 2: Atau gunakan cancelOrder dari useOrderStore
-      await cancelOrder(cancelData);
-      
-      toast.success("Pesanan berhasil dibatalkan!");
-      
-      // Refresh data pesanan
-      await fetchOrderDetails();
-      
-      // Tutup modal
-      setShowCancelModal(false);
-      setCancelNote("");
-      
-      // Kembali ke halaman sebelumnya setelah 1.5 detik
-      setTimeout(() => {
-        navigate(-1);
-      }, 1500);
-      
-    } catch (error) {
-      console.error("Error cancelling order:", error);
+
+  setIsCancelling(true);
+  try {
+    console.log("Starting order cancellation...");
+    
+    // Buat setError function untuk toast
+    const setErrorToast = (errorMessage) => {
+      toast.error(errorMessage);
+    };
+
+    // Data yang akan dikirim - hanya note sesuai backend
+    const cancelData = {
+      note: cancelNote.trim()
+    };
+
+    console.log("Calling cancelOrder with:", { 
+      orderId, 
+      cancelData 
+    });
+
+    // Panggil fungsi cancelOrder dengan parameter yang benar
+    await cancelOrder(
+      orderId, // orderId - string/number
+      setErrorToast, // setError function
+      cancelData // data object dengan note
+    );
+    
+    toast.success("Pesanan berhasil dibatalkan!");
+    
+    // Refresh data pesanan
+    await fetchOrderDetails();
+    
+    // Tutup modal
+    setShowCancelModal(false);
+    setCancelNote("");
+    
+    // Kembali ke halaman sebelumnya setelah 1.5 detik
+    setTimeout(() => {
+      navigate('/user/orders'); // Arahkan ke halaman orders
+    }, 1500);
+    
+  } catch (error) {
+    console.error("Error cancelling order:", error);
+    // Jangan panggil toast.error lagi karena sudah di handle di setError
+    if (!error.message.includes("Token") && !error.message.includes("Failed to cancel")) {
       toast.error(error.message || "Gagal membatalkan pesanan");
-    } finally {
-      setIsCancelling(false);
     }
-  };
+  } finally {
+    setIsCancelling(false);
+  }
+};
 
   // Fungsi untuk mendownload gambar QRIS
   const downloadQrisImage = async () => {
@@ -1440,7 +1464,7 @@ const PaymentDetail = () => {
             </div>
             <div className="flex items-center gap-3">
               {/* TOMBOL BATAL PESANAN - Hanya tampilkan jika bisa dibatalkan */}
-              {canCancelOrder && (
+              {canCancelOrder && order.status !== 'completed' && (
                 <button
                   onClick={() => setShowCancelModal(true)}
                   className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition font-medium"
