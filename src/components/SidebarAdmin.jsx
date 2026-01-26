@@ -79,12 +79,12 @@ export default function SidebarAdmin() {
     {
       path: "/dashboard/categories",
       icon: Layers,
-      label: "Mnajement Category",
+      label: "Manajement Category",
     },
     {
       path: "/dashboard/user-manajemen",
       icon: Settings,
-      label: "Mnajemen",
+      label: "Manajemen",
     },
   ]
 
