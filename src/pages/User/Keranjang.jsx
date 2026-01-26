@@ -2582,6 +2582,8 @@ const Keranjang = () => {
     toast.error("Produk ini tidak tersedia");
   };
 
+  
+
   const handleCheckout = () => {
     if (selectedCart.length === 0) {
       toast.error("Pilih minimal satu produk untuk checkout");
@@ -2595,6 +2597,17 @@ const Keranjang = () => {
     
     if (hasUnavailable) {
       toast.error("Tidak bisa checkout karena ada produk yang tidak tersedia");
+      return;
+    }
+
+    const totalSelected = selectedCart.reduce((sum, item) => {
+      const price = item?.variant?.price || 0;
+      const quantity = item?.quantity || 0;
+      return sum + (price * quantity);
+    }, 0);
+
+    if (totalSelected < 10000) {
+      toast.error("Total pembelian minimal Rp 10.000 untuk checkout");
       return;
     }
     
