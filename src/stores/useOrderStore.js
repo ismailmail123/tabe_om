@@ -228,7 +228,7 @@ const useOrderStore = create((set, get) => ({
 
     setOrders: (orders) => set({ orders }),
 
-    cancelOrder: async(orderId, setError) => {
+    cancelOrder: async(orderId, setError, data) => {
         const token = localStorage.getItem("token");
         if (!token) {
             console.error("Token not found. Unable to cancel order.");
@@ -238,8 +238,11 @@ const useOrderStore = create((set, get) => ({
 
         try {
             const response = await axiosInstance.put(
-                `/orders/${orderId}/cancel`,
-                null, {
+                `/orders/${orderId}/cancel`, {
+                    order_id: data.order_id,
+                    status: data.status,
+                    note: data.note || null
+                }, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },

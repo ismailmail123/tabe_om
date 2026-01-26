@@ -2600,16 +2600,16 @@ const Keranjang = () => {
       return;
     }
 
-    const totalSelected = selectedCart.reduce((sum, item) => {
-      const price = item?.variant?.price || 0;
-      const quantity = item?.quantity || 0;
-      return sum + (price * quantity);
-    }, 0);
+    // const totalSelected = selectedCart.reduce((sum, item) => {
+    //   const price = item?.variant?.price || 0;
+    //   const quantity = item?.quantity || 0;
+    //   return sum + (price * quantity);
+    // }, 0);
 
-    if (totalSelected < 10000) {
-      toast.error("Total pembelian minimal Rp 10.000 untuk checkout");
-      return;
-    }
+    // if (totalSelected < 10000) {
+    //   toast.error("Total pembelian minimal Rp 10.000 untuk checkout");
+    //   return;
+    // }
     
     setShowCheckout(true);
   };
