@@ -1,7 +1,6 @@
 // stores/useOrderStore.js
 import { create } from "zustand";
 import toast from "react-hot-toast";
-import axios from "axios";
 import axiosInstance from "../lib/axios";
 
 const useOrderStore = create((set, get) => ({

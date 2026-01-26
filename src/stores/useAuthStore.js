@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
-import axios from "axios";
 import axiosInstance from "../lib/axios";
 
 const useAuthStore = create(
@@ -77,7 +76,7 @@ const useAuthStore = create(
                     }
                 };
 
-                const response = await axiosInstance.put("/users/aktif", { userId },
+                await axiosInstance.put("/users/aktif", { userId },
                     config
                 );
                 toast.success("User activated successfully");

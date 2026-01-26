@@ -766,17 +766,6 @@ export default function Transaksi() {
                             <CheckCircle size={22} />
                           </button>
                         )}
-                    {/* <td className="px-4 py-3">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {trx.verifikasi_pembayaran !== null && trx.orderStatus !== "cancelled" && (
-                          <button
-                            onClick={() => handleKonfirmasi(trx.id)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Konfirmasi"
-                          >
-                            <CheckCircle size={22} />
-                          </button>
-                        )} */}
 
                         {/* Tombol Verifikasi Pembayaran (hanya untuk transfer yang pending) */}
                         {trx.paymentMethod === 'transfer' && trx.paymentStatus === 'process' && (

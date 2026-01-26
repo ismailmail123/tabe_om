@@ -668,12 +668,9 @@ import {
   Clock, 
   Package, 
   Truck, 
-  Home, 
   CreditCard, 
   User, 
   MapPin, 
-  Phone, 
-  Mail,
   Search,
   Filter,
   Download,
@@ -1692,7 +1689,6 @@ const RiwayatTransaksi = () => {
   const [dateFilter, setDateFilter] = useState("all");
   const navigate = useNavigate();
   const { fetchOrder, orders } = useOrderStore();
-  const authUser = useAuthStore((state) => state.authUser);
 
   // Load orders on mount
   useEffect(() => {
@@ -1742,6 +1738,9 @@ const RiwayatTransaksi = () => {
             const monthAgo = new Date(today);
             monthAgo.setMonth(today.getMonth() - 1);
             matchesDate = orderDate >= monthAgo;
+            break;
+          default:
+            matchesDate = true;
             break;
         }
       }
