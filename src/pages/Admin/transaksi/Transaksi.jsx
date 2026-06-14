@@ -21,6 +21,9 @@ import {
   AlertCircle,
   Eye,
   MoreVertical,
+  ZoomIn,
+  Download,
+  ImageOff,
 } from "lucide-react";
 import useOrderStore from "../../../stores/useOrderStore";
 import usePaymentStore from "../../../stores/usePaymentStore";
@@ -139,8 +142,34 @@ function Modal({ open, onClose, title, children, maxWidth = 680 }) {
   );
 }
 
+// ─── FOTO THUMBNAIL (clickable) ───────────────────────────────────────────────
+function FotoThumb({ src, onClick, size = 44 }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{ position: "relative", width: size, height: size, cursor: "pointer", borderRadius: 8, overflow: "hidden" }}
+      title="Klik untuk melihat foto"
+    >
+      <img src={src} alt="Bukti" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      {hov && (
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "rgba(15,23,42,.55)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          borderRadius: 8,
+        }}>
+          <ZoomIn size={18} color="#fff" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── TRANSACTION ROW (desktop) ────────────────────────────────────────────────
-function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory }) {
+function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory, onLihatFoto }) {
   const orderCfg  = ORDER_STATUS_CONFIG[trx.status]  || {};
   return (
     <tr style={{ borderBottom: "1px solid #F1F5F9", transition: "background .15s" }}
@@ -178,10 +207,7 @@ function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHis
 
       <td style={{ padding: "14px 8px" }}>
         {trx.buktiFoto ? (
-          <img src={trx.buktiFoto} alt="Bukti" style={{
-            width: 44, height: 44, objectFit: "cover",
-            borderRadius: 8, border: "1.5px solid #E2E8F0",
-          }} />
+          <FotoThumb src={trx.buktiFoto} onClick={() => onLihatFoto(trx.buktiFoto, `Bukti Serah Terima · ${trx.nama}`)} />
         ) : (
           <div style={{
             width: 44, height: 44, background: "#F8FAFC", borderRadius: 8,
@@ -200,6 +226,10 @@ function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHis
           )}
           {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
             <ActionBtn icon={CreditCard} color="#8B5CF6" title="Verifikasi Pembayaran" onClick={() => onVerifikasi(trx)} />
+          )}
+          {/* Lihat bukti transfer */}
+          {trx.paymentMethod === "transfer" && trx.paymentData?.[0]?.proof_of_payment && (
+            <ActionBtn icon={Eye} color="#0EA5E9" title="Lihat Bukti Transfer" onClick={() => onLihatFoto(trx.paymentData[0].proof_of_payment, `Bukti Transfer · ${trx.nama}`)} />
           )}
           <ActionBtn icon={Printer} color="#475569" title="Cetak Struk" onClick={() => onPrint(trx)} />
           {(trx.status === "Dikonfirmasi" || trx.status === "Selesai") && (
@@ -233,7 +263,7 @@ function ActionBtn({ icon: Icon, color, title, onClick }) {
 }
 
 // ─── MOBILE CARD ──────────────────────────────────────────────────────────────
-function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory }) {
+function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory, onLihatFoto }) {
   const orderCfg = ORDER_STATUS_CONFIG[trx.status] || {};
   return (
     <div style={{
@@ -296,7 +326,11 @@ function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint,
           {trx.buktiFoto && (
             <div style={{ marginTop: 14 }}>
               <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5, marginBottom: 6 }}>Foto Bukti</div>
-              <img src={trx.buktiFoto} alt="Bukti" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 10, border: "1.5px solid #E2E8F0" }} />
+              <FotoThumb
+                src={trx.buktiFoto}
+                size={80}
+                onClick={() => onLihatFoto(trx.buktiFoto, `Bukti Serah Terima · ${trx.nama}`)}
+              />
             </div>
           )}
 
@@ -307,6 +341,10 @@ function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint,
             )}
             {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
               <MobileActionBtn icon={CreditCard} label="Verifikasi" color="#8B5CF6" onClick={() => onVerifikasi(trx)} />
+            )}
+            {/* Lihat bukti transfer */}
+            {trx.paymentMethod === "transfer" && trx.paymentData?.[0]?.proof_of_payment && (
+              <MobileActionBtn icon={Eye} label="Bukti Transfer" color="#0EA5E9" onClick={() => onLihatFoto(trx.paymentData[0].proof_of_payment, `Bukti Transfer · ${trx.nama}`)} />
             )}
             <MobileActionBtn icon={Printer} label="Cetak" color="#475569" onClick={() => onPrint(trx)} />
             {(trx.status === "Dikonfirmasi" || trx.status === "Selesai") && (
@@ -490,6 +528,152 @@ function ModalHistory({ open, history, onClose }) {
   );
 }
 
+// ─── MODAL LIHAT FOTO (LIGHTBOX) ─────────────────────────────────────────────
+function ModalLihatFoto({ open, imageUrl, title, onClose }) {
+  const [zoom, setZoom] = useState(1);
+  const [dragging, setDragging] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+
+  // reset zoom & pos every time modal opens
+  useEffect(() => {
+    if (open) { setZoom(1); setPos({ x: 0, y: 0 }); }
+  }, [open]);
+
+  if (!open || !imageUrl) return null;
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    setZoom(z => Math.min(4, Math.max(0.5, z - e.deltaY * 0.001)));
+  };
+
+  const handleMouseDown = (e) => {
+    if (zoom <= 1) return;
+    setDragging(true);
+    setStartPos({ x: e.clientX - pos.x, y: e.clientY - pos.y });
+  };
+  const handleMouseMove = (e) => {
+    if (!dragging) return;
+    setPos({ x: e.clientX - startPos.x, y: e.clientY - startPos.y });
+  };
+  const handleMouseUp = () => setDragging(false);
+
+  const handleDownload = () => {
+    const a = document.createElement("a");
+    a.href = imageUrl;
+    a.download = `bukti-transfer-${Date.now()}.jpg`;
+    a.target = "_blank";
+    a.click();
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 60,
+        background: "rgba(0,0,0,.92)",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+      }}
+    >
+      {/* ── top bar ── */}
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: "absolute", top: 0, left: 0, right: 0,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 20px",
+          background: "linear-gradient(to bottom, rgba(0,0,0,.7), transparent)",
+        }}
+      >
+        <div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{title || "Bukti Transfer"}</div>
+          <div style={{ color: "#94A3B8", fontSize: 12, marginTop: 2 }}>
+            Scroll untuk zoom · Drag untuk geser
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {/* zoom out */}
+          <button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} title="Perkecil" style={toolBtnStyle}>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>−</span>
+          </button>
+          {/* zoom indicator */}
+          <div style={{
+            ...toolBtnStyle, cursor: "default", background: "rgba(255,255,255,.08)",
+            minWidth: 52, fontSize: 12, fontWeight: 700, color: "#fff",
+          }}>
+            {Math.round(zoom * 100)}%
+          </div>
+          {/* zoom in */}
+          <button onClick={() => setZoom(z => Math.min(4, z + 0.25))} title="Perbesar" style={toolBtnStyle}>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
+          </button>
+          {/* reset */}
+          <button onClick={() => { setZoom(1); setPos({ x: 0, y: 0 }); }} title="Reset ukuran" style={toolBtnStyle}>
+            <ZoomIn size={16} />
+          </button>
+          {/* download */}
+          <button onClick={handleDownload} title="Unduh gambar" style={{ ...toolBtnStyle, background: "rgba(59,130,246,.25)", borderColor: "rgba(59,130,246,.5)" }}>
+            <Download size={16} />
+          </button>
+          {/* close */}
+          <button onClick={onClose} title="Tutup" style={{ ...toolBtnStyle, background: "rgba(239,68,68,.2)", borderColor: "rgba(239,68,68,.4)" }}>
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── image area ── */}
+      <div
+        onClick={e => e.stopPropagation()}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{
+          overflow: "hidden", width: "100%", height: "100%",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: zoom > 1 ? (dragging ? "grabbing" : "grab") : "default",
+          userSelect: "none",
+        }}
+      >
+        <img
+          src={imageUrl}
+          alt="Bukti Transfer"
+          draggable={false}
+          style={{
+            maxWidth: zoom === 1 ? "85vw" : "none",
+            maxHeight: zoom === 1 ? "80vh" : "none",
+            width: zoom === 1 ? "auto" : undefined,
+            transform: `translate(${pos.x}px, ${pos.y}px) scale(${zoom})`,
+            transformOrigin: "center center",
+            transition: dragging ? "none" : "transform .15s ease",
+            borderRadius: zoom === 1 ? 12 : 0,
+            boxShadow: "0 8px 40px rgba(0,0,0,.6)",
+          }}
+        />
+      </div>
+
+      {/* ── bottom hint ── */}
+      <div style={{
+        position: "absolute", bottom: 16,
+        color: "#64748B", fontSize: 12, textAlign: "center",
+        pointerEvents: "none",
+      }}>
+        Klik di luar gambar untuk menutup
+      </div>
+    </div>
+  );
+}
+
+const toolBtnStyle = {
+  border: "1px solid rgba(255,255,255,.15)", background: "rgba(255,255,255,.1)",
+  borderRadius: 8, width: 36, height: 36, display: "flex",
+  alignItems: "center", justifyContent: "center",
+  cursor: "pointer", color: "#fff",
+};
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function Transaksi() {
   const [transactions, setTransactions]           = useState([]);
@@ -508,6 +692,9 @@ export default function Transaksi() {
   const [showModalVerifikasi, setShowModalVerifikasi]       = useState(false);
   const [selectedPaymentData, setSelectedPaymentData]       = useState(null);
   const [verifikasiNote, setVerifikasiNote]                 = useState("");
+  const [showModalLihatFoto, setShowModalLihatFoto]         = useState(false);
+  const [lihatFotoUrl, setLihatFotoUrl]                     = useState(null);
+  const [lihatFotoTitle, setLihatFotoTitle]                 = useState("");
 
   const { fetchOrder, updateOrderStatus } = useOrderStore();
   const { fetchPaymentByOrderId, verifyPayment } = usePaymentStore();
@@ -570,6 +757,9 @@ export default function Transaksi() {
   const bukaModalHistory    = (trx) => { setSelectedOrderHistory(trx.orderHistory || []); setShowModalHistory(true); };
   const tutupModalHistory   = () => { setShowModalHistory(false); setSelectedOrderHistory([]); };
   const tutupModalVerifikasi = () => { setShowModalVerifikasi(false); setSelectedPaymentData(null); setVerifikasiNote(""); };
+
+  const bukaLihatFoto = (url, title) => { setLihatFotoUrl(url); setLihatFotoTitle(title); setShowModalLihatFoto(true); };
+  const tutupLihatFoto = () => { setShowModalLihatFoto(false); setLihatFotoUrl(null); setLihatFotoTitle(""); };
 
   const bukaModalVerifikasi = async (trx) => {
     try {
@@ -784,6 +974,7 @@ export default function Transaksi() {
                       onPrint={handlePrint}
                       onFoto={bukaModalFoto}
                       onHistory={bukaModalHistory}
+                      onLihatFoto={bukaLihatFoto}
                     />
                   ))}
                 </tbody>
@@ -802,6 +993,7 @@ export default function Transaksi() {
                   onPrint={handlePrint}
                   onFoto={bukaModalFoto}
                   onHistory={bukaModalHistory}
+                  onLihatFoto={bukaLihatFoto}
                 />
               ))}
             </div>
@@ -836,6 +1028,13 @@ export default function Transaksi() {
         isOpen={showModalFoto}
         onClose={tutupModalFoto}
         transaction={selectedTransaction}
+      />
+
+      <ModalLihatFoto
+        open={showModalLihatFoto}
+        imageUrl={lihatFotoUrl}
+        title={lihatFotoTitle}
+        onClose={tutupLihatFoto}
       />
 
       {/* responsive styles */}
