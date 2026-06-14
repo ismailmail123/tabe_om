@@ -489,16 +489,20 @@ export default function Dashboard() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 border rounded-lg">
-            <p className="text-2xl font-bold text-purple-600">
-              Rp.{" "}
-              {orders.length > 0
-                ? ( orders
-                    .filter(order => order.status === "completed")
-                    .reduce((sum, order) => sum + (order.total || 0), 0) /
-                    orders.length
-                  ).toLocaleString("id-ID", { maximumFractionDigits: 0 })
-                : "0"}
-            </p>
+            {(() => {
+  const completedOrders = orders.filter(order => order.status === "completed");
+  return (
+    <p className="text-2xl font-bold text-purple-600">
+      Rp.{" "}
+      {completedOrders.length > 0
+        ? (
+            completedOrders.reduce((sum, order) => sum + (order.total || 0), 0) /
+            completedOrders.length  // ✅ dibagi 3, bukan 7
+          ).toLocaleString("id-ID", { maximumFractionDigits: 0 })
+        : "0"}
+    </p>
+  );
+})()}
             <p className="text-sm text-gray-500">Total Pendapatan</p>
           </div>
           <div className="text-center p-4 border rounded-lg">
