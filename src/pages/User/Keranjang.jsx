@@ -1,35 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ShoppingBag,
-  Trash2,
-  Minus,
-  Plus,
-  ArrowLeft,
-  CreditCard,
-  Banknote,
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  Store,
-  CheckCircle2,
-  Tag,
-} from "lucide-react";
+import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft, CreditCard, Truck, Banknote, AlertCircle } from "lucide-react";
 import { Checkbox } from "../../components/ui/checkbox";
 import useAuthStore from "../../stores/useAuthStore";
 import useCartStore from "../../stores/useCartStore";
 import useOrderStore from "../../stores/useOrderStore";
 import toast, { Toaster } from "react-hot-toast";
 
-/* ─── helpers ─────────────────────────────────────────── */
-const formatRupiah = (n) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(n);
-
-/* ─── CartItem ─────────────────────────────────────────── */
 const CartItem = ({
   item,
   onRemove,
@@ -51,187 +28,220 @@ const CartItem = ({
   const isDeleted = item.variant?.is_delete;
   const isUnavailable = isOutOfStock || isDeleted;
 
+  const handleIncrement = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    onIncrement();
+  };
+
+  const handleDecrement = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    onDecrement();
+  };
+
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
     setIsSwiping(true);
   };
+
   const handleTouchMove = (e) => {
     if (!isSwiping) return;
+
     touchEndX.current = e.touches[0].clientX;
     const diff = touchStartX.current - touchEndX.current;
-    if (diff > 0) setSwipeOffset(Math.min(diff, 80));
-    else if (diff < 0 && showDelete) { setSwipeOffset(0); setShowDelete(false); }
+
+    if (diff > 0) {
+      setSwipeOffset(Math.min(diff, 80));
+    } else if (diff < 0 && showDelete) {
+      setSwipeOffset(0);
+      setShowDelete(false);
+    }
   };
+
   const handleTouchEnd = () => {
     setIsSwiping(false);
-    if (swipeOffset > 50 && !showDelete) { setShowDelete(true); setSwipeOffset(80); }
-    else if (swipeOffset < 50 && !showDelete) setSwipeOffset(0);
+
+    if (swipeOffset > 50 && !showDelete) {
+      setShowDelete(true);
+      setSwipeOffset(80);
+    } else if (swipeOffset < 50 && !showDelete) {
+      setSwipeOffset(0);
+    }
   };
+
   const handleMouseLeave = () => {
-    if (swipeOffset > 0 && !showDelete) setSwipeOffset(0);
+    if (swipeOffset > 0 && !showDelete) {
+      setSwipeOffset(0);
+    }
   };
+
   const confirmDelete = () => {
-    if (window.confirm("Hapus item ini dari keranjang?")) {
-      onRemove(); setShowDelete(false); setSwipeOffset(0);
-    } else { setShowDelete(false); setSwipeOffset(0); }
+    if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
+      onRemove();
+      setShowDelete(false);
+      setSwipeOffset(0);
+    } else {
+      setShowDelete(false);
+      setSwipeOffset(0);
+    }
+  };
+
+  const handleToggleSelect = () => {
+    if (isUnavailable) {
+      onOutOfStockClick();
+      return;
+    }
+    onToggleSelect();
   };
 
   return (
     <div
       ref={itemRef}
-      className="relative overflow-hidden"
+      className="relative mb-4 overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseLeave={handleMouseLeave}
     >
-      {/* swipe delete bg */}
       <div
-        className={`absolute right-0 top-0 h-full w-20 bg-red-500 flex flex-col items-center justify-center gap-1 transition-transform duration-200 ${
+        className={`absolute right-0 top-0 h-full w-20 bg-red-500 flex items-center justify-center transition-transform duration-300 ${
           showDelete ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <button onClick={confirmDelete} className="text-white flex flex-col items-center gap-1">
-          <Trash2 size={18} />
-          <span className="text-xs font-semibold">Hapus</span>
+        <button onClick={confirmDelete} className="text-white font-bold">
+          HAPUS
         </button>
       </div>
 
       <div
-        className={`flex items-start gap-3 py-4 transition-transform duration-200 ${
-          isUnavailable ? "opacity-50" : ""
-        }`}
+        className={`flex items-center gap-4 p-2 border-b bg-white transition-transform duration-300 ${
+          isSwiping ? "cursor-grabbing" : "cursor-grab"
+        } ${isUnavailable ? "opacity-60" : ""}`}
         style={{
-          transform: showDelete ? "translateX(-80px)" : `translateX(-${swipeOffset}px)`,
+          transform: showDelete
+            ? "translateX(-80px)"
+            : `translateX(-${swipeOffset}px)`,
         }}
       >
-        {/* checkbox */}
-        <div className="pt-1 shrink-0">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => isUnavailable ? onOutOfStockClick() : onToggleSelect()}
-            disabled={isUnavailable}
-          />
-        </div>
-
-        {/* image */}
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={handleToggleSelect}
+          disabled={isUnavailable}
+        />
         <button
           onClick={() =>
             !isUnavailable &&
             navigate(`/product-detail/${item.variant?.product?.id}/detail`)
           }
-          className="shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-gray-100 bg-gray-50"
+          className="flex-shrink-0"
           disabled={isUnavailable}
         >
           <img
             src={item.variant?.img_url || "https://via.placeholder.com/64"}
-            className="w-full h-full object-cover"
+            className="w-16 h-16 object-cover rounded"
             alt={item.variant?.name || "Product"}
           />
         </button>
-
-        {/* info */}
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">
-            {item.variant?.name || "Produk"}
-          </p>
-
+        <div className="flex-1">
+          <h3 className="font-medium">{item.variant?.name || "Product"}</h3>
           {isUnavailable && (
-            <span className="inline-block mt-1 text-xs font-medium text-red-500 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-              {isDeleted ? "Tidak tersedia" : "Stok habis"}
-            </span>
+            <div className="text-red-500 text-sm font-medium mt-1">
+              {isDeleted ? "Produk tidak tersedia" : "Stok Habis"}
+            </div>
           )}
-
-          <p className="text-blue-600 font-bold text-sm mt-1">
-            {formatRupiah(item.variant?.price || 0)}
-          </p>
-
-          <div className="flex items-center justify-between mt-2.5">
-            {/* stepper */}
-            <div
-              className={`inline-flex items-center border border-gray-200 rounded-full overflow-hidden ${
-                isUnavailable ? "opacity-40 pointer-events-none" : ""
-              }`}
-            >
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-blue-700 font-bold">
+              {new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+              }).format(item.variant?.price || 0)}
+            </p>
+            <div className="flex items-center gap-2">
               <button
-                onClick={(e) => { e.stopPropagation(); onDecrement(); }}
+                onClick={handleDecrement}
+                className={`px-2 py-1 border rounded transition ${
+                  isUnavailable
+                    ? "bg-gray-100 cursor-not-allowed text-gray-400"
+                    : "hover:bg-gray-100"
+                }`}
                 disabled={isUnavailable}
-                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition"
               >
-                <Minus size={13} />
+                -
               </button>
-              <span className="w-7 text-center text-sm font-semibold text-gray-700">
+              <span
+                className={`min-w-[20px] text-center ${
+                  isUnavailable ? "text-gray-400" : ""
+                }`}
+              >
                 {item.quantity}
               </span>
               <button
-                onClick={(e) => { e.stopPropagation(); onIncrement(); }}
+                onClick={handleIncrement}
+                className={`px-2 py-1 border rounded transition ${
+                  isUnavailable
+                    ? "bg-gray-100 cursor-not-allowed text-gray-400"
+                    : "hover:bg-gray-100"
+                }`}
                 disabled={isUnavailable}
-                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition"
               >
-                <Plus size={13} />
+                +
               </button>
             </div>
-
-            {/* subtotal */}
-            <p className="text-xs text-gray-500">
-              Subtotal:{" "}
-              <span className="font-semibold text-gray-700">
-                {formatRupiah((item.variant?.price || 0) * item.quantity)}
-              </span>
-            </p>
           </div>
         </div>
-
-        {/* desktop delete */}
         <button
           onClick={() => {
-            if (window.confirm("Hapus item ini dari keranjang?")) onRemove();
+            if (window.confirm("Apakah Anda yakin ingin menghapus item ini?")) {
+              onRemove();
+            }
           }}
+          className={`text-red-500 hover:text-red-700 hidden md:block transition ${
+            isUnavailable
+              ? "text-gray-400 hover:text-gray-400 cursor-not-allowed"
+              : ""
+          }`}
           disabled={isUnavailable}
-          className="hidden md:flex shrink-0 w-8 h-8 items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition"
         >
-          <Trash2 size={15} />
+          Hapus
         </button>
       </div>
     </div>
   );
 };
 
-/* ─── PaymentMethodOption ──────────────────────────────── */
-const PaymentMethodOption = ({ icon: Icon, title, description, selected, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`w-full text-left rounded-xl p-4 border-2 transition-all duration-150 ${
-      selected
-        ? "border-blue-500 bg-blue-50"
-        : "border-gray-200 bg-white hover:border-gray-300"
+const PaymentMethodOption = ({ method, icon: Icon, title, description, selected, onClick }) => (
+  <div 
+    className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${
+      selected 
+        ? 'border-green-500 bg-green-50' 
+        : 'border-gray-200 hover:border-gray-300'
     }`}
+    onClick={onClick}
   >
     <div className="flex items-center gap-3">
-      <div
-        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-          selected ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-500"
-        }`}
-      >
-        <Icon size={18} />
+      <div className={`p-2 rounded-lg ${
+        selected ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
+      }`}>
+        <Icon size={20} />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-800 text-sm">{title}</p>
-        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+      <div className="flex-1">
+        <h3 className="font-semibold text-gray-800">{title}</h3>
+        <p className="text-sm text-gray-600">{description}</p>
       </div>
-      <div
-        className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
-          selected ? "border-blue-500 bg-blue-500" : "border-gray-300"
-        }`}
-      >
-        {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+        selected ? 'border-green-500 bg-green-500' : 'border-gray-300'
+      }`}>
+        {selected && (
+          <div className="w-2 h-2 rounded-full bg-white"></div>
+        )}
       </div>
     </div>
-  </button>
+  </div>
 );
 
-/* ─── Pembayaran ───────────────────────────────────────── */
 const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
   const [form, setForm] = useState({
     wbp_name: "",
@@ -243,304 +253,524 @@ const Pembayaran = ({ cartItems, onBack, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("transfer");
   const [error, setError] = useState(null);
-
+  
   const { createOrder } = useOrderStore();
+  const { removeCartItem, clearSelectedCart } = useCartStore();
   const navigate = useNavigate();
 
-  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
-  const subtotal = safeCartItems.reduce(
-    (s, i) => s + (i?.variant?.price || 0) * (i?.quantity || 0),
-    0
-  );
+  const formatRupiah = (n) =>
+    "Rp " + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
-  const setField = (key, val) => {
-    setForm((f) => ({ ...f, [key]: val }));
-    setError(null);
-  };
+  // Pastikan cartItems selalu array dan hitung total dengan aman
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  const subtotal = safeCartItems.reduce((sum, item) => {
+    const price = item?.variant?.price || 0;
+    const quantity = item?.quantity || 0;
+    return sum + (price * quantity);
+  }, 0);
+
+  // TANPA BIAYA ADMIN
+  const total = subtotal;
+
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setIsSubmitting(true);
+  //   setError(null);
+
+  //   // Validasi form
+  //   if (!form.wbp_name.trim()) {
+  //     setError("Nama WBP wajib diisi");
+  //     setIsSubmitting(false);
+  //     toast.error("Nama WBP wajib diisi");
+  //     return;
+  //   }
+
+  //   if (!form.wbp_room.trim()) {
+  //     setError("Blok/Kamar wajib diisi");
+  //     setIsSubmitting(false);
+  //     toast.error("Blok/Kamar wajib diisi");
+  //     return;
+  //   }
+
+  //   if (!form.wbp_sender.trim()) {
+  //     setError("Nama Pengirim wajib diisi");
+  //     setIsSubmitting(false);
+  //     toast.error("Nama Pengirim wajib diisi");
+  //     return;
+  //   }
+
+  //   if (!paymentMethod) {
+  //     setError("Pilih metode pembayaran");
+  //     setIsSubmitting(false);
+  //     toast.error("Pilih metode pembayaran");
+  //     return;
+  //   }
+
+  //   try {
+  //     // Prepare data for order creation
+  //     const orderData = {
+  //       items: safeCartItems.map(item => ({
+  //         variant_id: item.variant?.id,
+  //         quantity: item.quantity
+  //       })),
+  //       payment_method: paymentMethod,
+  //       wbp_name: form.wbp_name.trim(),
+  //       wbp_room: form.wbp_room.trim(),
+  //       wbp_register_number: form.wbp_register_number.trim(),
+  //       wbp_sender: form.wbp_sender.trim(),
+  //       note: form.note.trim()
+  //     };
+
+  //     console.log("Creating order with data:", orderData);
+
+  //     // Create order using useOrderStore
+  //     const result = await createOrder(orderData);
+
+  //     console.log("Order creation result:", result);
+
+  //     if (result.status === "success") {
+  //       // Hapus item dari cart
+  //       // safeCartItems.forEach(item => {
+  //       //   removeCartItem(item.id);
+  //       // });
+  //       // clearSelectedCart();
+
+  //       // Set notification for new transaction
+  //       localStorage.setItem("notifTransaksi", "true");
+
+  //       toast.success("✅ Pesanan berhasil dibuat!");
+  //       console.log("Navigating to payment page for order ID:", result.data.order_id);
+  //       navigate(`/payment/${result.data.order_id}`);
+        
+  //       // Navigasi berdasarkan metode pembayaran
+  //       if (paymentMethod === 'COD') {
+  //         toast.success("Pesanan COD akan diproses. Silakan tunggu konfirmasi admin.");
+  //         navigate("/user/orders");
+  //       } else {
+  //         toast.success(
+  //           "Pesanan berhasil dibuat! Silakan lakukan transfer dan konfirmasi ke admin.",
+  //           { duration: 5000 }
+  //         );
+  //         // navigate("/user/orders");
+  //         navigate(`/payment/${result.data.order_id}`);
+  //       }
+        
+  //       if (onSuccess) {
+  //         onSuccess();
+  //       }
+  //     } else {
+  //       // Tampilkan error dari server
+  //       const errorMessage = result.message || "Gagal membuat pesanan";
+  //       setError(errorMessage);
+  //       toast.error(errorMessage);
+  //     }
+  //   } catch (error) {
+  //     console.error("Order creation error:", error);
+      
+  //     // Extract error message from various possible formats
+  //     let errorMessage = "Terjadi kesalahan saat membuat pesanan";
+      
+  //     if (error.response) {
+  //       // Server responded with error status
+  //       if (error.response.data) {
+  //         if (typeof error.response.data === 'string') {
+  //           errorMessage = error.response.data;
+  //         } else if (error.response.data.message) {
+  //           errorMessage = error.response.data.message;
+  //         } else if (error.response.data.error) {
+  //           errorMessage = error.response.data.error;
+  //         }
+  //       }
+  //       errorMessage += ` (Status: ${error.response.status})`;
+  //     } else if (error.request) {
+  //       // Request was made but no response received
+  //       errorMessage = "Tidak ada respons dari server. Periksa koneksi internet Anda.";
+  //     } else {
+  //       // Something else happened
+  //       errorMessage = error.message || errorMessage;
+  //     }
+      
+  //     setError(errorMessage);
+  //     toast.error(errorMessage);
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
+  e.preventDefault();
+  setIsSubmitting(true);
+  setError(null);
 
-    if (!form.wbp_name.trim()) {
-      setError("Nama WBP wajib diisi"); toast.error("Nama WBP wajib diisi");
-      setIsSubmitting(false); return;
-    }
-    if (!form.wbp_room.trim()) {
-      setError("Blok/Kamar wajib diisi"); toast.error("Blok/Kamar wajib diisi");
-      setIsSubmitting(false); return;
-    }
-    if (!form.wbp_sender.trim()) {
-      setError("Nama Pengirim wajib diisi"); toast.error("Nama Pengirim wajib diisi");
-      setIsSubmitting(false); return;
-    }
+  // Validasi form
+  if (!form.wbp_name.trim()) {
+    setError("Nama WBP wajib diisi");
+    setIsSubmitting(false);
+    toast.error("Nama WBP wajib diisi");
+    return;
+  }
 
-    try {
-      const orderData = {
-        items: safeCartItems.map((i) => ({ variant_id: i.variant?.id, quantity: i.quantity })),
-        payment_method: paymentMethod,
-        wbp_name: form.wbp_name.trim(),
-        wbp_room: form.wbp_room.trim(),
-        wbp_register_number: form.wbp_register_number.trim(),
-        wbp_sender: form.wbp_sender.trim(),
-        note: form.note.trim(),
-      };
+  if (!form.wbp_room.trim()) {
+    setError("Blok/Kamar wajib diisi");
+    setIsSubmitting(false);
+    toast.error("Blok/Kamar wajib diisi");
+    return;
+  }
 
-      const result = await createOrder(orderData);
+  if (!form.wbp_sender.trim()) {
+    setError("Nama Pengirim wajib diisi");
+    setIsSubmitting(false);
+    toast.error("Nama Pengirim wajib diisi");
+    return;
+  }
 
-      if (result.status === "success") {
-        localStorage.setItem("notifTransaksi", "true");
-        toast.success("✅ Pesanan berhasil dibuat!");
-        if (onSuccess) onSuccess();
-        navigate(`/user/payment/${result.data.order_id}`);
-      } else {
-        const msg = result.message || "Gagal membuat pesanan";
-        setError(msg); toast.error(msg);
+  if (!paymentMethod) {
+    setError("Pilih metode pembayaran");
+    setIsSubmitting(false);
+    toast.error("Pilih metode pembayaran");
+    return;
+  }
+
+  try {
+    // Prepare data for order creation
+    const orderData = {
+      items: safeCartItems.map(item => ({
+        variant_id: item.variant?.id,
+        quantity: item.quantity
+      })),
+      payment_method: paymentMethod,
+      wbp_name: form.wbp_name.trim(),
+      wbp_room: form.wbp_room.trim(),
+      wbp_register_number: form.wbp_register_number.trim(),
+      wbp_sender: form.wbp_sender.trim(),
+      note: form.note.trim()
+    };
+
+    console.log("Creating order with data:", orderData);
+
+    // Create order using useOrderStore
+    const result = await createOrder(orderData);
+
+    console.log("Order creation result:", result);
+
+    if (result.status === "success") {
+      // Hapus item dari cart yang berhasil di-order
+      // safeCartItems.forEach(item => {
+      //   removeCartItem(item.id);
+      // });
+      // clearSelectedCart();
+
+      // Set notification for new transaction
+      localStorage.setItem("notifTransaksi", "true");
+
+      toast.success("✅ Pesanan berhasil dibuat!");
+      
+      // HANYA SATU navigate() YANG DIPANGGIL
+      console.log("Order ID created:", result.data.order_id);
+      
+      if (onSuccess) {
+        onSuccess();
       }
-    } catch (err) {
-      let msg = "Terjadi kesalahan saat membuat pesanan";
-      if (err.response?.data) {
-        msg = typeof err.response.data === "string"
-          ? err.response.data
-          : err.response.data.message || err.response.data.error || msg;
-        msg += ` (Status: ${err.response.status})`;
-      } else if (err.request) {
-        msg = "Tidak ada respons dari server. Periksa koneksi Anda.";
-      } else {
-        msg = err.message || msg;
-      }
-      setError(msg); toast.error(msg);
-    } finally {
-      setIsSubmitting(false);
+      navigate(`/user/payment/${result.data.order_id}`);
+      
+      // Tunggu sebentar agar toast terlihat, lalu redirect
+      // setTimeout(() => {
+      //   navigate(`/payment/${result.data.order_id}`);
+      // }, 1500);
+      
+    } else {
+      // Tampilkan error dari server
+      const errorMessage = result.message || "Gagal membuat pesanan";
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
-  };
+  } catch (error) {
+    console.error("Order creation error:", error);
+    
+    // Extract error message from various possible formats
+    let errorMessage = "Terjadi kesalahan saat membuat pesanan";
+    
+    if (error.response) {
+      // Server responded with error status
+      if (error.response.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      }
+      errorMessage += ` (Status: ${error.response.status})`;
+    } else if (error.request) {
+      // Request was made but no response received
+      errorMessage = "Tidak ada respons dari server. Periksa koneksi internet Anda.";
+    } else {
+      // Something else happened
+      errorMessage = error.message || errorMessage;
+    }
+    
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Toaster position="top-center" />
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 font-['Poppins']">
+      <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-6 md:p-10">
+        <div className="flex items-center gap-3 mb-8">
+          <button
+            onClick={onBack}
+            className="bg-none border-none cursor-pointer p-0 mr-2"
+            disabled={isSubmitting}
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <CreditCard className="w-8 h-8 text-green-600" />
+          <h2 className="text-2xl font-semibold text-gray-800">
+            Formulir Pembayaran
+          </h2>
+        </div>
 
-      {/* ── header (tidak sticky, cukup di atas konten) ── */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={onBack}
-          disabled={isSubmitting}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
-        >
-          <ArrowLeft size={20} className="text-gray-700" />
-        </button>
-        <h1 className="font-bold text-gray-900 text-lg">Formulir Pemesanan</h1>
-      </div>
-
-      {/* ── konten (scroll bebas, TIDAK ada fixed footer) ── */}
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
-
-        {/* error banner */}
+        {/* Error Display */}
         {error && (
-          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
-            <AlertCircle size={17} className="text-red-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-red-800 mb-1">Terjadi Kesalahan</h4>
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
           </div>
         )}
 
-        {/* metode pembayaran */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h2 className="font-bold text-gray-800 text-sm mb-3 flex items-center gap-2">
-            <CreditCard size={16} className="text-blue-500" />
-            Metode Pembayaran <span className="text-red-500">*</span>
-          </h2>
-          <PaymentMethodOption
-            icon={Banknote}
-            title="Transfer Bank"
-            description="Transfer ke rekening, lalu konfirmasi ke admin"
-            selected={paymentMethod === "transfer"}
-            onClick={() => setPaymentMethod("transfer")}
-          />
-          {paymentMethod === "transfer" && (
-            <div className="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-4">
-              <p className="text-xs font-bold text-blue-800 mb-2 uppercase tracking-wide">
-                Info Rekening Tujuan
-              </p>
-              <div className="space-y-1 text-sm text-blue-700">
-                <p>🏦 <span className="font-medium">Bank BCA</span></p>
-                <p>📋 No. Rek: <span className="font-bold tracking-widest">1234567890</span></p>
-                <p>👤 Atas Nama: <span className="font-medium">Nama Toko</span></p>
-              </div>
-              <p className="text-xs text-blue-500 mt-3 pt-2 border-t border-blue-200">
-                Konfirmasi pembayaran ke admin via WhatsApp setelah transfer.
-              </p>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Pilihan Metode Pembayaran */}
+          <div className="border-b pb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Pilih Metode Pembayaran <span className="text-red-500">*</span>
+            </h3>
+            <div className="space-y-3">
+              {/* <PaymentMethodOption
+                method="COD"
+                icon={Truck}
+                title="Cash on Delivery (COD)"
+                description="Bayar saat barang diterima"
+                selected={paymentMethod === 'COD'}
+                onClick={() => setPaymentMethod('COD')}
+              /> */}
+              <PaymentMethodOption
+                method="transfer"
+                icon={Banknote}
+                title="Transfer Manual"
+                description="Transfer ke rekening bank, konfirmasi ke admin"
+                selected={paymentMethod === 'transfer'}
+                onClick={() => setPaymentMethod('transfer')}
+              />
             </div>
-          )}
-        </div>
+            
+            {paymentMethod === 'transfer' && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-2">Instruksi Transfer:</h4>
+                <p className="text-sm text-blue-700 whitespace-pre-line">
+                  Silakan lakukan transfer ke rekening berikut:
+                  {"\n"}Bank: BCA
+                  {"\n"}No. Rekening: 1234567890
+                  {"\n"}Atas Nama: Nama Toko
+                  {"\n\n"}Setelah transfer, harap konfirmasi ke admin melalui WhatsApp atau menu konfirmasi pembayaran.
+                </p>
+              </div>
+            )}
+          </div>
 
-        {/* data penerima */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-          <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-            <Store size={16} className="text-blue-500" />
-            Data Penerima (WBP)
-          </h2>
-
-          {/* nama wbp */}
+          {/* Input Data WBP */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+            <label className="block text-gray-700 font-medium mb-2">
               Nama WBP <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
+              name="wbp_name"
               value={form.wbp_name}
-              onChange={(e) => setField("wbp_name", e.target.value)}
-              placeholder="Nama lengkap WBP"
+              onChange={(e) => {
+                setForm({ ...form, wbp_name: e.target.value });
+                setError(null); // Clear error when user types
+              }}
+              required
+              placeholder="Masukkan nama lengkap WBP"
+              className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none ${
+                error && !form.wbp_name.trim() ? "border-red-500" : "border-gray-300"
+              }`}
               disabled={isSubmitting}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition placeholder:text-gray-400"
             />
           </div>
 
-          {/* blok + register */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Input Blok dan Register */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              <label className="block text-gray-700 font-medium mb-2">
                 Blok / Kamar <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
+                name="wbp_room"
                 value={form.wbp_room}
-                onChange={(e) => setField("wbp_room", e.target.value)}
-                placeholder="cth: Blok A-2"
+                onChange={(e) => {
+                  setForm({ ...form, wbp_room: e.target.value });
+                  setError(null);
+                }}
+                required
+                placeholder="Contoh: Blok A-2"
+                className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none ${
+                  error && !form.wbp_room.trim() ? "border-red-500" : "border-gray-300"
+                }`}
                 disabled={isSubmitting}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition placeholder:text-gray-400"
               />
             </div>
+
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                No. Register
+              <label className="block text-gray-700 font-medium mb-2">
+                Nomor Register
               </label>
               <input
                 type="text"
+                name="wbp_register_number"
                 value={form.wbp_register_number}
-                onChange={(e) => setField("wbp_register_number", e.target.value)}
-                placeholder="Opsional"
+                onChange={(e) => {
+                  setForm({ ...form, wbp_register_number: e.target.value });
+                  setError(null);
+                }}
+                placeholder="Masukkan nomor register WBP"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
                 disabled={isSubmitting}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition placeholder:text-gray-400"
               />
             </div>
           </div>
 
-          {/* nama pengirim */}
+          {/* Nama Pengirim */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+            <label className="block text-gray-700 font-medium mb-2">
               Nama Pengirim <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
+              name="wbp_sender"
               value={form.wbp_sender}
-              onChange={(e) => setField("wbp_sender", e.target.value)}
-              placeholder="Nama Anda (pengirim pembayaran)"
+              onChange={(e) => {
+                setForm({ ...form, wbp_sender: e.target.value });
+                setError(null);
+              }}
+              required
+              placeholder="Masukkan nama pengirim pembayaran"
+              className={`w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none ${
+                error && !form.wbp_sender.trim() ? "border-red-500" : "border-gray-300"
+              }`}
               disabled={isSubmitting}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition placeholder:text-gray-400"
             />
           </div>
 
-          {/* catatan */}
+          {/* Catatan */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-              Catatan <span className="text-gray-400 font-normal">(opsional)</span>
+            <label className="block text-gray-700 font-medium mb-2">
+              Catatan Tambahan
             </label>
             <textarea
+              name="note"
               value={form.note}
-              onChange={(e) => setField("note", e.target.value)}
-              rows={3}
-              placeholder="Tulis catatan tambahan..."
+              onChange={(e) => {
+                setForm({ ...form, note: e.target.value });
+                setError(null);
+              }}
+              rows="3"
+              placeholder="Tulis catatan tambahan (opsional)"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-500 outline-none"
               disabled={isSubmitting}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition resize-none placeholder:text-gray-400"
-            />
+            ></textarea>
           </div>
-        </div>
 
-        {/* ringkasan */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2 mb-4">
-            <ShoppingBag size={16} className="text-blue-500" />
-            Ringkasan Pesanan
-          </h2>
-          <div className="space-y-2">
+          {/* Ringkasan Pembelian */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Ringkasan Pembelian
+            </h3>
             {safeCartItems.map((item) => (
-              <div key={item.id} className="flex justify-between items-center text-sm">
-                <span className="text-gray-600 truncate max-w-[65%]">
+              <div
+                key={item.id}
+                className="flex justify-between items-center text-gray-700 mb-2"
+              >
+                <span>
                   {item.variant?.name || "Produk"}{" "}
-                  <span className="text-gray-400">×{item.quantity}</span>
+                  <span className="text-sm text-gray-500">x{item.quantity}</span>
                 </span>
-                <span className="font-semibold text-gray-800 shrink-0">
+                <span className="font-medium">
                   {formatRupiah((item.variant?.price || 0) * item.quantity)}
                 </span>
               </div>
             ))}
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-dashed border-gray-200 space-y-2 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>Subtotal</span>
-              <span>{formatRupiah(subtotal)}</span>
+            
+            <div className="border-t mt-4 pt-4 space-y-2">
+              <div className="flex justify-between text-gray-700">
+                <span>Subtotal</span>
+                <span>{formatRupiah(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-green-600">
+                <span>Biaya Admin</span>
+                <span>Gratis</span>
+              </div>
+              <div className="flex justify-between mt-2 text-lg font-semibold border-t border-gray-200 pt-3">
+                <span>Total Pembayaran</span>
+                <span className="text-green-700">{formatRupiah(total)}</span>
+              </div>
             </div>
-            <div className="flex justify-between text-green-600">
-              <span className="flex items-center gap-1">
-                <Tag size={13} /> Biaya Admin
-              </span>
-              <span className="font-medium">Gratis</span>
-            </div>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
-            <span className="font-bold text-gray-900">Total Bayar</span>
-            <span className="font-bold text-blue-600 text-lg">{formatRupiah(subtotal)}</span>
+          {/* Informasi Pembayaran */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-yellow-800">
+              {paymentMethod === 'COD' 
+                ? 'Pesanan COD akan diproses setelah Anda mengkonfirmasi. Silakan tunggu konfirmasi admin.'
+                : 'Pesanan akan diproses setelah pembayaran dikonfirmasi oleh admin. Silakan lakukan transfer sesuai instruksi di atas.'
+              }
+            </p>
           </div>
-        </div>
 
-        {/* info */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-xs text-amber-800">
-            Pesanan akan diproses setelah pembayaran dikonfirmasi oleh admin.
-            Silakan lakukan transfer sesuai instruksi di atas.
-          </p>
-        </div>
-
-        {/* ── tombol INLINE (tidak fixed, tidak tertutup) ── */}
-        <div className="flex gap-3 pt-2 pb-8">
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={isSubmitting}
-            className="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition"
-          >
-            Kembali
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className={`flex-[2] py-3 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2 transition active:scale-[0.98] ${
-              isSubmitting
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Memproses...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 size={16} />
-                Konfirmasi Pesanan
-              </>
-            )}
-          </button>
-        </div>
+          {/* Tombol Submit */}
+          <div className="pt-6 flex justify-end gap-4">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={isSubmitting}
+              className="px-6 py-2.5 rounded-lg font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
+            >
+              Kembali
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`px-6 py-2.5 rounded-lg font-medium transition ${
+                isSubmitting 
+                  ? "bg-gray-400 cursor-not-allowed text-white" 
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Memproses...
+                </div>
+              ) : paymentMethod === 'COD' 
+                ? "Konfirmasi Pesanan COD" 
+                : "Konfirmasi Pesanan Transfer"
+              }
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
 
-/* ─── Keranjang (main) ─────────────────────────────────── */
 const Keranjang = () => {
   const [expandedSellers, setExpandedSellers] = useState({});
   const [showCheckout, setShowCheckout] = useState(false);
@@ -548,7 +778,8 @@ const Keranjang = () => {
   const [cartError, setCartError] = useState(null);
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.authUser);
-
+  
+  // Use Zustand stores
   const {
     cartItems,
     selectedCart,
@@ -562,287 +793,336 @@ const Keranjang = () => {
   } = useCartStore();
 
   useEffect(() => {
-    (async () => {
+    const loadCart = async () => {
       try {
         setIsLoading(true);
         setCartError(null);
         await fetchCarts();
-      } catch {
+      } catch (error) {
+        console.error("Error loading cart:", error);
         setCartError("Gagal memuat keranjang. Silakan coba lagi.");
-        toast.error("Gagal memuat keranjang.");
+        toast.error("Gagal memuat keranjang. Silakan coba lagi.");
       } finally {
         setIsLoading(false);
       }
-    })();
+    };
+
+    loadCart();
   }, [fetchCarts]);
 
+  // Pastikan cartItems selalu array
   const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
-
+  
+  // Group items by seller dengan safeCartItems
   const groupedItems = safeCartItems.reduce((acc, item) => {
-    if (!item?.variant?.product) return acc;
-    const sid = item.variant.product.user_id;
-    if (!acc[sid])
-      acc[sid] = {
-        sellerName: item.variant.product.user?.nama || "Penjual",
+    if (!item || !item.variant?.product) return acc;
+    
+    const sellerId = item.variant.product.user_id;
+    if (!acc[sellerId]) {
+      acc[sellerId] = {
+        sellerName: item.variant.product.user?.nama || "Unknown Seller",
         items: [],
         subtotal: 0,
       };
-    acc[sid].items.push(item);
-    acc[sid].subtotal += (item.variant?.price || 0) * (item.quantity || 0);
+    }
+    acc[sellerId].items.push(item);
+    acc[sellerId].subtotal += (item.variant?.price || 0) * (item.quantity || 0);
     return acc;
   }, {});
 
   useEffect(() => {
-    if (safeCartItems.length > 0 && Object.keys(expandedSellers).length === 0) {
-      const init = {};
-      Object.keys(groupedItems).forEach((k) => { init[k] = true; });
-      setExpandedSellers(init);
+    if (
+      safeCartItems.length > 0 &&
+      Object.keys(expandedSellers).length === 0
+    ) {
+      const initialExpanded = {};
+      Object.keys(groupedItems).forEach((sellerId) => {
+        initialExpanded[sellerId] = true;
+      });
+      setExpandedSellers(initialExpanded);
     }
-  }, [safeCartItems]);
+  }, [safeCartItems, groupedItems, expandedSellers]);
 
-  const selectedSubtotal = Object.values(groupedItems).reduce((sum, seller) =>
-    sum +
-    seller.items
-      .filter(
-        (i) =>
-          selectedCart.some((c) => c.id === i.id) &&
-          i.variant?.stock > 0 &&
-          !i.variant?.is_delete
-      )
-      .reduce(
-        (s, i) =>
-          s +
-          (i.variant?.price || 0) *
-            (selectedCart.find((c) => c.id === i.id)?.quantity || i.quantity || 0),
-        0
-      ),
+  const selectedSubtotal = Object.values(groupedItems || {}).reduce(
+    (sum, seller) => {
+      const sellerTotal = seller.items
+        .filter(
+          (item) =>
+            selectedCart.some((cartItem) => cartItem.id === item.id) &&
+            item.variant?.stock > 0 &&
+            !item.variant?.is_delete
+        )
+        .reduce((s, item) => {
+          const selectedItem = selectedCart.find(
+            (cartItem) => cartItem.id === item.id
+          );
+          return (
+            s + (item.variant?.price || 0) * (selectedItem?.quantity || item.quantity || 0)
+          );
+        }, 0);
+      return sum + sellerTotal;
+    },
     0
   );
 
-  const totalAvailableItems = safeCartItems.filter(
-    (i) => i.variant?.stock > 0 && !i.variant?.is_delete
-  ).length;
+  const handleToggleSeller = (sellerId) => {
+    const seller = groupedItems[sellerId];
 
-  const selectedCount = selectedCart.filter(
-    (i) => i.variant?.stock > 0 && !i.variant?.is_delete
-  ).length;
+    const hasUnavailable = seller.items.some(
+      (item) => item.variant?.stock <= 0 || item.variant?.is_delete
+    );
+
+    if (hasUnavailable) {
+      toast.error(
+        "Tidak bisa memilih seller karena ada produk yang tidak tersedia"
+      );
+      return;
+    }
+
+    toggleSellerSelection(sellerId);
+  };
+
+  const handleUnavailableClick = () => {
+    toast.error("Produk ini tidak tersedia");
+  };
+
+  
 
   const handleCheckout = () => {
-    if (!selectedCount) { toast.error("Pilih minimal satu produk"); return; }
-    if (selectedCart.some((i) => i.variant?.stock <= 0 || i.variant?.is_delete)) {
-      toast.error("Hapus produk tidak tersedia terlebih dahulu"); return;
+    if (selectedCart.length === 0) {
+      toast.error("Pilih minimal satu produk untuk checkout");
+      return;
     }
-    if (selectedSubtotal < 10000) { toast.error("Minimum belanja Rp 10.000"); return; }
+    
+    // Cek jika ada produk yang tidak tersedia
+    const hasUnavailable = selectedCart.some(
+      (item) => item.variant?.stock <= 0 || item.variant?.is_delete
+    );
+    
+    if (hasUnavailable) {
+      toast.error("Tidak bisa checkout karena ada produk yang tidak tersedia");
+      return;
+    }
+
+    const totalSelected = selectedCart.reduce((sum, item) => {
+      const price = item?.variant?.price || 0;
+      const quantity = item?.quantity || 0;
+      return sum + (price * quantity);
+    }, 0);
+
+    if (totalSelected < 10000) {
+      toast.error("Total pembelian minimal Rp 10.000 untuk checkout");
+      return;
+    }
+    
     setShowCheckout(true);
   };
 
-  if (showCheckout)
+  const handleCheckoutSuccess = () => {
+    setShowCheckout(false);
+    navigate("/user/orders");
+  };
+
+  const totalAvailableItems = safeCartItems.filter(
+    (item) => item.variant?.stock > 0 && !item.variant?.is_delete
+  ).length;
+
+  // Tampilkan komponen Pembayaran jika showCheckout true
+  if (showCheckout) {
     return (
-      <Pembayaran
-        cartItems={selectedCart}
+      <Pembayaran 
+        cartItems={selectedCart} 
         onBack={() => setShowCheckout(false)}
-        onSuccess={() => { setShowCheckout(false); navigate("/user/orders"); }}
+        onSuccess={handleCheckoutSuccess}
       />
     );
+  }
 
-  if (isLoading)
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50">
-        <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-500 text-sm">Memuat keranjang…</p>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-600">Memuat keranjang...</p>
       </div>
     );
+  }
 
-  if (cartError)
+  // Error state
+  if (cartError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 bg-gray-50 text-center">
-        <AlertCircle size={44} className="text-red-400" />
-        <h2 className="font-bold text-gray-800 text-lg">Gagal Memuat Keranjang</h2>
-        <p className="text-gray-500 text-sm">{cartError}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Gagal Memuat Keranjang</h2>
+        <p className="text-gray-600 text-center mb-6">{cartError}</p>
         <button
-          onClick={() => window.location.reload()}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition"
+          // onClick={() => window.location.reload()}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg"
         >
           Coba Lagi
         </button>
       </div>
     );
+  }
 
-  if (safeCartItems.length === 0)
+  if (safeCartItems.length === 0) {
     return (
       <>
         <Toaster position="top-center" />
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 px-6 text-center">
-          <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center">
-            <ShoppingBag size={40} className="text-blue-500" />
-          </div>
-          <h2 className="font-bold text-gray-800 text-xl">Keranjang masih kosong</h2>
-          <p className="text-gray-500 text-sm max-w-xs">
-            Belum ada produk yang ditambahkan. Yuk mulai belanja!
-          </p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 text-gray-700 font-['Poppins']">
+          <img
+            src="https://cdn-icons-png.flaticon.com/512/11329/11329060.png"
+            alt="Empty cart"
+            className="w-44 mb-6 opacity-80"
+          />
+          <h2 className="text-2xl font-semibold mb-2">Keranjangmu masih kosong!</h2>
+          <p className="text-gray-500 mb-5">Ayo belanja dan temukan produk terbaik!</p>
           <button
             onClick={() => navigate("/user/belanja")}
-            className="mt-1 bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold text-sm hover:bg-blue-700 active:scale-[0.98] transition"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg shadow-md transition transform hover:scale-[1.02]"
           >
-            Mulai Belanja
+            Belanja Sekarang
           </button>
         </div>
       </>
     );
+  }
 
   return (
     <>
       <Toaster position="top-center" />
-      <div className="min-h-screen bg-gray-50">
-
-        {/* header */}
-        <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-2 md:mt-14">
+      <div className="container min-h-screen flex flex-col mx-auto p-4 pb-16 md:pb-0 md:mt-14">
+        <div className="flex items-center mb-6">
           <button
             onClick={() => navigate(-1)}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+            className="bg-none border-none cursor-pointer p-0 mr-3"
           >
-            <ArrowLeft size={20} className="text-gray-700" />
+            <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="font-bold text-gray-900 text-lg">Keranjang</h1>
-          <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-            {totalAvailableItems}
-          </span>
+          <h1 className="text-2xl font-bold">
+            Keranjang Saya{" "}
+            <span className="text-blue-700">({totalAvailableItems})</span>
+          </h1>
         </div>
 
-        {/* list */}
-        <div className="max-w-2xl mx-auto px-3 py-4 space-y-3">
-          {Object.entries(groupedItems).map(([sellerId, seller]) => {
-            const availItems = seller.items.filter(
-              (i) => i.variant?.stock > 0 && !i.variant?.is_delete
+        {Object.entries(groupedItems || {}).map(([sellerId, seller]) => {
+          const availableItems = seller.items.filter(
+            (item) => item.variant?.stock > 0 && !item.variant?.is_delete
+          );
+          
+          const allAvailableSelected = availableItems.length > 0 &&
+            availableItems.every((item) =>
+              selectedCart.some((selected) => selected.id === item.id)
             );
-            const allSelected =
-              availItems.length > 0 &&
-              availItems.every((i) => selectedCart.some((c) => c.id === i.id));
-            const hasUnavailable = seller.items.some(
-              (i) => i.variant?.stock <= 0 || i.variant?.is_delete
-            );
-            const isExpanded = expandedSellers[sellerId] ?? true;
 
-            return (
-              <div
-                key={sellerId}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
-              >
-                {/* seller header */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-50">
+          const hasUnavailable = seller.items.some(
+            (item) => item.variant?.stock <= 0 || item.variant?.is_delete
+          );
+
+          return (
+            <div
+              key={sellerId}
+              className="bg-white rounded-lg shadow-md mb-6 p-4"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
                   <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={() => {
-                      if (hasUnavailable) {
-                        toast.error("Ada produk yang tidak tersedia"); return;
-                      }
-                      toggleSellerSelection(sellerId);
-                    }}
-                    disabled={hasUnavailable || availItems.length === 0}
+                    checked={allAvailableSelected}
+                    onCheckedChange={() => handleToggleSeller(sellerId)}
+                    disabled={hasUnavailable || availableItems.length === 0}
                   />
-                  <Store size={14} className="text-gray-400 shrink-0" />
-                  <span className="font-semibold text-gray-700 text-sm flex-1 truncate">
-                    {seller.sellerName}
-                  </span>
+                  <span className="font-semibold">{seller.sellerName}</span>
                   {hasUnavailable && (
-                    <span className="text-xs text-red-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full shrink-0">
-                      Stok habis
+                    <span className="text-red-500 text-sm ml-2">
+                      (Ada produk yang tidak tersedia)
                     </span>
                   )}
-                  <button
-                    onClick={() =>
-                      setExpandedSellers((p) => ({ ...p, [sellerId]: !p[sellerId] }))
-                    }
-                    className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition shrink-0"
-                  >
-                    {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                  </button>
                 </div>
-
-                {/* items */}
-                {isExpanded && (
-                  <div className="px-4 divide-y divide-gray-50">
-                    {seller.items.map((item) => (
-                      <CartItem
-                        key={item.id}
-                        item={item}
-                        onRemove={() => removeCartItem(item.id)}
-                        onIncrement={() => incrementCartItemQuantity(item.id)}
-                        onDecrement={() => decrementCartItemQuantity(item.id)}
-                        isSelected={selectedCart.some((c) => c.id === item.id)}
-                        onToggleSelect={() => toggleCartSelection(item)}
-                        onOutOfStockClick={() => toast.error("Produk ini tidak tersedia")}
-                        navigate={navigate}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* ── checkout summary + button INLINE (tidak fixed) ── */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mt-2">
-            {/* pilih semua */}
-            <div className="flex items-center gap-2 pb-4 border-b border-gray-100">
-              <Checkbox
-                checked={selectedCount > 0 && selectedCount === totalAvailableItems}
-                onCheckedChange={() => {
-                  if (selectedCount === totalAvailableItems) {
-                    clearSelectedCart();
-                  } else {
-                    Object.keys(groupedItems).forEach((sid) => {
-                      const hasUnavail = groupedItems[sid].items.some(
-                        (i) => i.variant?.stock <= 0 || i.variant?.is_delete
-                      );
-                      if (!hasUnavail) toggleSellerSelection(sid);
-                    });
+                <button
+                  onClick={() =>
+                    setExpandedSellers((prev) => ({
+                      ...prev,
+                      [sellerId]: !prev[sellerId],
+                    }))
                   }
-                }}
-              />
-              <span className="text-sm text-gray-600">
-                Pilih semua ({totalAvailableItems} produk)
-              </span>
-            </div>
-
-            {/* total */}
-            <div className="flex justify-between items-center py-4">
-              <div>
-                <p className="text-xs text-gray-500">{selectedCount} produk dipilih</p>
-                <p className="font-bold text-blue-600 text-xl mt-0.5">
-                  {formatRupiah(selectedSubtotal)}
-                </p>
+                  className="text-blue-700 hover:text-blue-900 text-sm"
+                >
+                  {expandedSellers[sellerId] ? "Sembunyikan" : "Lihat Detail"}
+                </button>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-green-600 font-medium">✓ Gratis biaya admin</p>
-                <p className="text-xs text-gray-400 mt-0.5">Min. belanja Rp 10.000</p>
-              </div>
-            </div>
 
-            {/* checkout button */}
-            <button
-              onClick={handleCheckout}
-              disabled={selectedCount === 0}
-              className={`w-full py-3.5 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2 transition active:scale-[0.98] ${
-                selectedCount === 0
-                  ? "bg-gray-300 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              <ShoppingBag size={16} />
-              {selectedCount > 0
-                ? `Checkout (${selectedCount} produk)`
-                : "Pilih produk dulu"}
-            </button>
+              {expandedSellers[sellerId] &&
+                seller.items.map((item) => (
+                  <CartItem
+                    key={item.id}
+                    item={item}
+                    onRemove={() => removeCartItem(item.id)}
+                    onIncrement={() => incrementCartItemQuantity(item.id)}
+                    onDecrement={() => decrementCartItemQuantity(item.id)}
+                    isSelected={selectedCart.some(
+                      (cartItem) => cartItem.id === item.id
+                    )}
+                    onToggleSelect={() => toggleCartSelection(item)}
+                    onOutOfStockClick={handleUnavailableClick}
+                    navigate={navigate}
+                  />
+                ))}
+            </div>
+          );
+        })}
+
+        <div className="bg-white rounded-lg shadow-md p-6 mt-6 sticky bottom-0 z-10">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Total Belanja</h2>
+            <div className="text-right">
+              <p className="text-gray-600">
+                Total Item:{" "}
+                {
+                  selectedCart.filter(
+                    (item) =>
+                      item.variant?.stock > 0 && !item.variant?.is_delete
+                  ).length
+                }
+              </p>
+              <p className="text-2xl font-bold text-blue-700">
+                {new Intl.NumberFormat("id-ID", {
+                  style: "currency",
+                  currency: "IDR",
+                }).format(selectedSubtotal)}
+              </p>
+            </div>
           </div>
+
+          {/* Informasi Tanpa Biaya Admin */}
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-800">
+              <span className="font-semibold">Gratis biaya admin!</span> Total yang dibayarkan sama dengan subtotal.
+            </p>
+          </div>
+
+          {/* Tombol Checkout */}
+          <button
+            onClick={handleCheckout}
+            disabled={selectedCart.length === 0}
+            className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition ${
+              selectedCart.length === 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              <span>Checkout ({selectedCart.length} produk)</span>
+            </div>
+          </button>
         </div>
-
-        <footer className="bg-gray-800 text-white py-4 text-xs mt-6">
-          <div className="container mx-auto px-4 text-center">
-            <p>© 2025 All rights reserved.</p>
-          </div>
-        </footer>
       </div>
+
+      <footer className="bg-gray-800 text-white py-4 text-xs mt-auto">
+        <div className="container mx-auto px-4 text-center">
+          <p>© 2025 All rights reserved.</p>
+        </div>
+      </footer>
     </>
   );
 };
