@@ -22,7 +22,7 @@ const KoperasiBelanja = () => {
   }, [fetchProducts, fetchCarts])
 
   const formatRupiah = (n) =>
-    "Rp " + (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+  "Rp " + Math.floor(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
 
   const getSafeCategory = (product) => {
     if (!product) return ""
