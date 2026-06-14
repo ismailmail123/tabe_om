@@ -496,8 +496,7 @@ export default function Dashboard() {
       Rp.{" "}
       {completedOrders.length > 0
         ? (
-            completedOrders.reduce((sum, order) => sum + (order.total || 0), 0) /
-            completedOrders.length  // ✅ dibagi 3, bukan 7
+            completedOrders.reduce((sum, order) => sum + (order.total || 0), 0)
           ).toLocaleString("id-ID", { maximumFractionDigits: 0 })
         : "0"}
     </p>
