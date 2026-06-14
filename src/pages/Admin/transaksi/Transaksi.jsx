@@ -24,6 +24,9 @@ import {
   ZoomIn,
   Download,
   ImageOff,
+  ShieldAlert,
+  Ban,
+  AlertTriangle,
 } from "lucide-react";
 import useOrderStore from "../../../stores/useOrderStore";
 import usePaymentStore from "../../../stores/usePaymentStore";
@@ -169,7 +172,7 @@ function FotoThumb({ src, onClick, size = 44 }) {
 }
 
 // ─── TRANSACTION ROW (desktop) ────────────────────────────────────────────────
-function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory, onLihatFoto }) {
+function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory, onLihatFoto, onTolak }) {
   const orderCfg  = ORDER_STATUS_CONFIG[trx.status]  || {};
   return (
     <tr style={{ borderBottom: "1px solid #F1F5F9", transition: "background .15s" }}
@@ -227,6 +230,10 @@ function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHis
           {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
             <ActionBtn icon={CreditCard} color="#8B5CF6" title="Verifikasi Pembayaran" onClick={() => onVerifikasi(trx)} />
           )}
+          {/* Tolak pembayaran */}
+          {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
+            <ActionBtn icon={Ban} color="#EF4444" title="Tolak Pembayaran (Fake Transfer)" onClick={() => onTolak(trx)} />
+          )}
           {/* Lihat bukti transfer */}
           {trx.paymentMethod === "transfer" && trx.paymentData?.[0]?.proof_of_payment && (
             <ActionBtn icon={Eye} color="#0EA5E9" title="Lihat Bukti Transfer" onClick={() => onLihatFoto(trx.paymentData[0].proof_of_payment, `Bukti Transfer · ${trx.nama}`)} />
@@ -263,7 +270,7 @@ function ActionBtn({ icon: Icon, color, title, onClick }) {
 }
 
 // ─── MOBILE CARD ──────────────────────────────────────────────────────────────
-function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory, onLihatFoto }) {
+function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory, onLihatFoto, onTolak }) {
   const orderCfg = ORDER_STATUS_CONFIG[trx.status] || {};
   return (
     <div style={{
@@ -341,6 +348,10 @@ function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint,
             )}
             {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
               <MobileActionBtn icon={CreditCard} label="Verifikasi" color="#8B5CF6" onClick={() => onVerifikasi(trx)} />
+            )}
+            {/* Tolak pembayaran */}
+            {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
+              <MobileActionBtn icon={Ban} label="Tolak" color="#EF4444" onClick={() => onTolak(trx)} />
             )}
             {/* Lihat bukti transfer */}
             {trx.paymentMethod === "transfer" && trx.paymentData?.[0]?.proof_of_payment && (
@@ -528,6 +539,200 @@ function ModalHistory({ open, history, onClose }) {
   );
 }
 
+// ─── MODAL TOLAK PEMBAYARAN ───────────────────────────────────────────────────
+function ModalTolakPembayaran({ open, data, onConfirm, onClose }) {
+  const [alasan, setAlasan] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [pilihAlasan, setPilihAlasan] = useState("");
+
+  const ALASAN_CEPAT = [
+    "Bukti transfer tidak jelas / buram",
+    "Nominal tidak sesuai",
+    "Rekening tujuan tidak sesuai",
+    "Tanggal transfer tidak sesuai",
+    "Diduga bukti transfer palsu (fake)",
+    "Bukti transfer sudah pernah digunakan",
+  ];
+
+  useEffect(() => {
+    if (open) { setAlasan(""); setPilihAlasan(""); setLoading(false); }
+  }, [open]);
+
+  const handlePilih = (val) => {
+    setPilihAlasan(val);
+    setAlasan(val);
+  };
+
+  const handleSubmit = async () => {
+    if (!alasan.trim()) return;
+    setLoading(true);
+    await onConfirm(alasan);
+    setLoading(false);
+  };
+
+  if (!open || !data) return null;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(15,23,42,.65)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 60, padding: 16,
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 20, width: "100%", maxWidth: 480,
+        boxShadow: "0 25px 60px rgba(15,23,42,.3)",
+        overflow: "hidden",
+      }}>
+        {/* ── header merah ── */}
+        <div style={{
+          background: "linear-gradient(135deg,#FEF2F2,#FFF1F1)",
+          borderBottom: "1px solid #FECACA",
+          padding: "20px 24px",
+          display: "flex", alignItems: "flex-start", gap: 14,
+        }}>
+          <div style={{
+            background: "#FEE2E2", borderRadius: 12, padding: 10, flexShrink: 0,
+          }}>
+            <ShieldAlert size={24} color="#EF4444" />
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#991B1B" }}>
+              Tolak Pembayaran
+            </h2>
+            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#DC2626" }}>
+              Tindakan ini akan membatalkan pembayaran dan mengembalikan status order.
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            marginLeft: "auto", border: "none", background: "transparent",
+            cursor: "pointer", color: "#94A3B8", flexShrink: 0, padding: 4,
+          }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ padding: "20px 24px" }}>
+          {/* info order */}
+          <div style={{
+            background: "#F8FAFC", borderRadius: 10, padding: "12px 14px",
+            border: "1px solid #E2E8F0", marginBottom: 18,
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <div>
+              <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5 }}>Nama WBP</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginTop: 2 }}>{data.nama}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5 }}>Total</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#EF4444", marginTop: 2 }}>
+                {formatRupiah(data.amount || data.total)}
+              </div>
+            </div>
+          </div>
+
+          {/* pilih alasan cepat */}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8, textTransform: "uppercase", letterSpacing: .5 }}>
+              Pilih Alasan Penolakan
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {ALASAN_CEPAT.map((a) => (
+                <button key={a} onClick={() => handlePilih(a)} style={{
+                  textAlign: "left", padding: "9px 12px", borderRadius: 8, cursor: "pointer",
+                  fontSize: 13, fontWeight: 500, transition: "all .12s",
+                  border: `1.5px solid ${pilihAlasan === a ? "#EF4444" : "#E2E8F0"}`,
+                  background: pilihAlasan === a ? "#FEF2F2" : "#F8FAFC",
+                  color: pilihAlasan === a ? "#DC2626" : "#475569",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  <div style={{
+                    width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+                    border: `2px solid ${pilihAlasan === a ? "#EF4444" : "#CBD5E1"}`,
+                    background: pilihAlasan === a ? "#EF4444" : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    {pilihAlasan === a && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />}
+                  </div>
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* textarea alasan custom */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 6, textTransform: "uppercase", letterSpacing: .5 }}>
+              Atau Tulis Alasan Lain
+            </div>
+            <textarea
+              value={alasan}
+              onChange={e => { setAlasan(e.target.value); setPilihAlasan(""); }}
+              placeholder="Contoh: Nomor rekening tidak sesuai, bukti transfer terlihat diedit..."
+              rows={3}
+              style={{
+                width: "100%", padding: "10px 12px", borderRadius: 10,
+                border: `1.5px solid ${alasan.trim() ? "#EF4444" : "#E2E8F0"}`,
+                fontSize: 13, resize: "vertical", color: "#334155",
+                outline: "none", boxSizing: "border-box",
+                background: alasan.trim() ? "#FFF5F5" : "#F8FAFC",
+                transition: "all .15s",
+              }}
+            />
+            {!alasan.trim() && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5, color: "#F59E0B", fontSize: 12 }}>
+                <AlertTriangle size={13} />
+                Alasan wajib diisi sebelum menolak
+              </div>
+            )}
+          </div>
+
+          {/* action buttons */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onClose} style={{
+              flex: 1, padding: "12px 0", borderRadius: 10,
+              border: "1.5px solid #E2E8F0", background: "#fff",
+              color: "#64748B", fontWeight: 700, fontSize: 14, cursor: "pointer",
+            }}>
+              Batal
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!alasan.trim() || loading}
+              style={{
+                flex: 1, padding: "12px 0", borderRadius: 10, border: "none",
+                background: alasan.trim() && !loading
+                  ? "linear-gradient(135deg,#EF4444,#DC2626)"
+                  : "#E2E8F0",
+                color: alasan.trim() && !loading ? "#fff" : "#94A3B8",
+                fontWeight: 700, fontSize: 14,
+                cursor: alasan.trim() && !loading ? "pointer" : "not-allowed",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                transition: "all .15s",
+              }}
+            >
+              {loading ? (
+                <>
+                  <div style={{
+                    width: 16, height: 16, border: "2px solid rgba(255,255,255,.3)",
+                    borderTopColor: "#fff", borderRadius: "50%",
+                    animation: "spin 1s linear infinite",
+                  }} />
+                  Memproses…
+                </>
+              ) : (
+                <>
+                  <Ban size={16} />
+                  Tolak Pembayaran
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MODAL LIHAT FOTO (LIGHTBOX) ─────────────────────────────────────────────
 function ModalLihatFoto({ open, imageUrl, title, onClose }) {
   const [zoom, setZoom] = useState(1);
@@ -695,6 +900,8 @@ export default function Transaksi() {
   const [showModalLihatFoto, setShowModalLihatFoto]         = useState(false);
   const [lihatFotoUrl, setLihatFotoUrl]                     = useState(null);
   const [lihatFotoTitle, setLihatFotoTitle]                 = useState("");
+  const [showModalTolak, setShowModalTolak]                 = useState(false);
+  const [selectedTolakData, setSelectedTolakData]           = useState(null);
 
   const { fetchOrder, updateOrderStatus } = useOrderStore();
   const { fetchPaymentByOrderId, verifyPayment } = usePaymentStore();
@@ -760,6 +967,33 @@ export default function Transaksi() {
 
   const bukaLihatFoto = (url, title) => { setLihatFotoUrl(url); setLihatFotoTitle(title); setShowModalLihatFoto(true); };
   const tutupLihatFoto = () => { setShowModalLihatFoto(false); setLihatFotoUrl(null); setLihatFotoTitle(""); };
+
+  const bukaModalTolak = async (trx) => {
+    try {
+      const paymentData = await fetchPaymentByOrderId(trx.id);
+      if (paymentData) {
+        setSelectedTolakData({ ...paymentData, orderId: trx.id, orderCode: trx.orderCode, nama: trx.nama, total: trx.total });
+        setShowModalTolak(true);
+      } else {
+        toast.error("Data pembayaran tidak ditemukan");
+      }
+    } catch {
+      toast.error("Gagal memuat data pembayaran");
+    }
+  };
+  const tutupModalTolak = () => { setShowModalTolak(false); setSelectedTolakData(null); };
+
+  const handleTolakPembayaran = async (alasan) => {
+    if (!selectedTolakData) return;
+    try {
+      await verifyPayment({ order_id: selectedTolakData.order_id, status: "cancelled", note: alasan });
+      toast.success("Pembayaran berhasil ditolak");
+      await loadTransactions();
+      tutupModalTolak();
+    } catch {
+      toast.error("Gagal menolak pembayaran");
+    }
+  };
 
   const bukaModalVerifikasi = async (trx) => {
     try {
@@ -975,6 +1209,7 @@ export default function Transaksi() {
                       onFoto={bukaModalFoto}
                       onHistory={bukaModalHistory}
                       onLihatFoto={bukaLihatFoto}
+                      onTolak={bukaModalTolak}
                     />
                   ))}
                 </tbody>
@@ -994,6 +1229,7 @@ export default function Transaksi() {
                   onFoto={bukaModalFoto}
                   onHistory={bukaModalHistory}
                   onLihatFoto={bukaLihatFoto}
+                  onTolak={bukaModalTolak}
                 />
               ))}
             </div>
@@ -1035,6 +1271,13 @@ export default function Transaksi() {
         imageUrl={lihatFotoUrl}
         title={lihatFotoTitle}
         onClose={tutupLihatFoto}
+      />
+
+      <ModalTolakPembayaran
+        open={showModalTolak}
+        data={selectedTolakData}
+        onConfirm={handleTolakPembayaran}
+        onClose={tutupModalTolak}
       />
 
       {/* responsive styles */}
