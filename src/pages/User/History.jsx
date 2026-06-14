@@ -45,8 +45,7 @@ function StatusBadge({ type, value, size = "sm" }) {
   const map = type === "order" ? ORDER_STATUS : PAYMENT_STATUS
   const cfg = map[value] || { label: value, color: "gray" }
   const c   = colorMap[cfg.color] || colorMap.gray
-  /* ↑ ukuran badge sedikit lebih besar dari sebelumnya */
-  const sz  = size === "xs" ? "text-xs px-2.5 py-1" : "text-sm px-3 py-1"
+  const sz  = size === "xs" ? "text-[11px] px-2 py-0.5" : "text-xs px-2.5 py-1"
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full font-medium ${sz} ${c.bg} ${c.text} border ${c.border}`}>
       <span className={`w-2 h-2 rounded-full ${c.dot}`} />
@@ -89,25 +88,25 @@ function OrderCard({ order, expanded, onToggle, onDetail }) {
 
       {/* Card Header */}
       <button
-        className="w-full text-left p-5 flex items-start gap-4"
+        className="w-full text-left px-4 py-3 flex items-center gap-3"
         onClick={onToggle}
       >
-        {/* Icon — lebih besar */}
-        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-          <Package className="w-6 h-6 text-blue-500" />
+        {/* Icon */}
+        <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <Package className="w-5 h-5 text-blue-500" />
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <span className="font-semibold text-gray-800 text-base truncate">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="font-semibold text-gray-800 text-sm truncate">
               {order.order_data?.[0]?.wbp_name || "—"}
             </span>
-            <span className="font-bold text-emerald-600 text-base flex-shrink-0">
+            <span className="font-bold text-emerald-600 text-sm flex-shrink-0">
               {formatRupiah(order.total)}
             </span>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs text-gray-400">{formatDate(order.created_at)}</span>
             <StatusBadge type="order"   value={order.status}         size="xs" />
             <StatusBadge type="payment" value={order.payment_status} size="xs" />
@@ -115,8 +114,8 @@ function OrderCard({ order, expanded, onToggle, onDetail }) {
         </div>
 
         {/* Chevron */}
-        <div className="ml-1 flex-shrink-0 text-gray-300 mt-1">
-          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        <div className="flex-shrink-0 text-gray-300">
+          {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </div>
       </button>
 
@@ -450,28 +449,28 @@ export default function History() {
       */}
       <div className="min-h-screen bg-gray-50 font-['Inter',_'Poppins',_sans-serif]">
 
-        {/* ── Page Header ── */}
+        {/* ── Page Header — compact ── */}
         <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
-              <Clock className="w-6 h-6 text-white" />
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+              <Clock className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">Riwayat Belanja</h1>
-              <p className="text-sm text-gray-400">
+              <h1 className="text-sm font-bold text-gray-900 leading-tight">Riwayat Belanja</h1>
+              <p className="text-xs text-gray-400 leading-tight">
                 {orders?.length ? `${orders.length} transaksi total` : "Belum ada transaksi"}
               </p>
             </div>
           </div>
 
-          {/* Tabs — lebih tinggi agar mudah di-tap */}
+          {/* Tabs */}
           <div className="max-w-3xl mx-auto px-4 sm:px-6 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-1 pb-0 min-w-max">
+            <div className="flex gap-0 pb-0 min-w-max">
               {TABS.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-1.5 px-4 py-3.5 text-sm font-semibold whitespace-nowrap
+                  className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold whitespace-nowrap
                     transition-colors border-b-2 ${
                       activeTab === tab.id
                         ? "border-blue-600 text-blue-600"
@@ -480,7 +479,7 @@ export default function History() {
                 >
                   {tab.label}
                   {tabCounts[tab.id] > 0 && (
-                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full leading-none
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none
                       ${activeTab === tab.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}>
                       {tabCounts[tab.id]}
                     </span>
@@ -495,7 +494,7 @@ export default function History() {
             pb-24 = ruang 96px di bawah agar tidak tertutup bottom navbar.
             Kalau navbar-mu lebih tinggi, naikkan ke pb-28 atau pb-32.
         ──────────────────────────────────────────────────────────────── */}
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 sm:py-7 pb-24">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 sm:py-5 pb-24">
 
           {filteredOrders.length === 0 ? (
             <EmptyState activeTab={activeTab} />
