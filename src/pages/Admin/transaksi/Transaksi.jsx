@@ -13,94 +13,544 @@ import {
   CreditCard,
   Check,
   X as XIcon,
+  Search,
+  Filter,
+  TrendingUp,
+  Clock,
+  ShoppingBag,
+  AlertCircle,
+  Eye,
+  MoreVertical,
 } from "lucide-react";
 import useOrderStore from "../../../stores/useOrderStore";
 import usePaymentStore from "../../../stores/usePaymentStore";
 import toast from "react-hot-toast";
 import ModalAmbilFoto from "./ModalAmbilFoto";
 
+// ─── STATUS CONFIG ────────────────────────────────────────────────────────────
+const ORDER_STATUS_CONFIG = {
+  "Selesai":            { color: "#10B981", bg: "#ECFDF5", label: "Selesai",             dot: true },
+  "Dikonfirmasi":       { color: "#3B82F6", bg: "#EFF6FF", label: "Dikonfirmasi",         dot: true },
+  "Menunggu Konfirmasi":{ color: "#F59E0B", bg: "#FFFBEB", label: "Menunggu Konfirmasi",  dot: true },
+  "Dibatalkan":         { color: "#EF4444", bg: "#FEF2F2", label: "Dibatalkan",           dot: true },
+};
+
+const PAYMENT_STATUS_CONFIG = {
+  completed: { color: "#10B981", bg: "#ECFDF5", label: "Terverifikasi" },
+  process:   { color: "#F59E0B", bg: "#FFFBEB", label: "Menunggu Verifikasi" },
+  cancelled: { color: "#EF4444", bg: "#FEF2F2", label: "Ditolak" },
+  expired:   { color: "#6B7280", bg: "#F9FAFB", label: "Kadaluarsa" },
+  pending:   { color: "#F59E0B", bg: "#FFFBEB", label: "Menunggu Verifikasi" },
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const formatRupiah = (n) => {
+  if (!n) return "Rp 0";
+  return "Rp " + Number(n).toLocaleString("id-ID");
+};
+
+const formatTanggal = (dateString) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+};
+
+const mapOrderStatus = (s) =>
+  ({ pending: "Menunggu Konfirmasi", process: "Dikonfirmasi", completed: "Selesai", cancelled: "Dibatalkan" }[s] || s);
+
+const mapPaymentStatus = (s) => PAYMENT_STATUS_CONFIG[s]?.label || s;
+
+const mapHistoryStatus = (s) =>
+  ({ pending: "Menunggu Konfirmasi", process: "Dikonfirmasi", completed: "Selesai", cancelled: "Dibatalkan" }[s] || s);
+
+// ─── BADGE COMPONENTS ─────────────────────────────────────────────────────────
+function StatusBadge({ status, type = "order" }) {
+  const cfg = type === "order"
+    ? ORDER_STATUS_CONFIG[status]
+    : PAYMENT_STATUS_CONFIG[status];
+  if (!cfg) return <span>{status}</span>;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      background: cfg.bg, color: cfg.color,
+      padding: "3px 10px", borderRadius: 20,
+      fontSize: 12, fontWeight: 600,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.color, flexShrink: 0 }} />
+      {cfg.label || status}
+    </span>
+  );
+}
+
+// ─── STAT CARD ────────────────────────────────────────────────────────────────
+function StatCard({ icon: Icon, label, value, color, bg }) {
+  return (
+    <div style={{
+      background: "#fff", borderRadius: 14, padding: "18px 20px",
+      display: "flex", alignItems: "center", gap: 14,
+      boxShadow: "0 1px 3px rgba(0,0,0,.07)", flex: 1, minWidth: 140,
+    }}>
+      <div style={{ background: bg, borderRadius: 10, padding: 10, flexShrink: 0 }}>
+        <Icon size={20} color={color} />
+      </div>
+      <div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: 12, color: "#64748B", marginTop: 3 }}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MODAL WRAPPER ────────────────────────────────────────────────────────────
+function Modal({ open, onClose, title, children, maxWidth = 680 }) {
+  if (!open) return null;
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(15,23,42,.55)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 50, padding: 16,
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 20, width: "100%", maxWidth,
+        maxHeight: "90vh", display: "flex", flexDirection: "column",
+        boxShadow: "0 25px 60px rgba(15,23,42,.25)",
+      }}>
+        {/* header */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "20px 24px", borderBottom: "1px solid #E2E8F0",
+        }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#0F172A" }}>{title}</h2>
+          <button onClick={onClose} style={{
+            border: "none", background: "#F1F5F9", borderRadius: 8,
+            width: 32, height: 32, cursor: "pointer", display: "flex",
+            alignItems: "center", justifyContent: "center", color: "#64748B",
+          }}>
+            <X size={16} />
+          </button>
+        </div>
+        <div style={{ overflowY: "auto", flex: 1, padding: "20px 24px" }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TRANSACTION ROW (desktop) ────────────────────────────────────────────────
+function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory }) {
+  const orderCfg  = ORDER_STATUS_CONFIG[trx.status]  || {};
+  return (
+    <tr style={{ borderBottom: "1px solid #F1F5F9", transition: "background .15s" }}
+      onMouseEnter={e => e.currentTarget.style.background = "#FAFBFF"}
+      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+
+      {/* indicator bar */}
+      <td style={{ padding: "14px 0 14px 12px", width: 4 }}>
+        <div style={{ width: 4, height: 40, borderRadius: 4, background: orderCfg.color || "#CBD5E1" }} />
+      </td>
+
+      <td style={{ padding: "14px 8px", color: "#94A3B8", fontSize: 13 }}>{index + 1}</td>
+
+      <td style={{ padding: "14px 8px" }}>
+        <div style={{ fontWeight: 600, color: "#0F172A", fontSize: 14 }}>{trx.nama}</div>
+        <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+          Kamar {trx.blok} · Reg {trx.nomorRegister}
+        </div>
+      </td>
+
+      <td style={{ padding: "14px 8px", fontSize: 13, color: "#475569" }}>{trx.date}</td>
+
+      <td style={{ padding: "14px 8px" }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{formatRupiah(trx.total)}</div>
+        <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+          {trx.paymentMethod === "transfer" ? "Transfer" : "COD"}
+        </div>
+      </td>
+
+      <td style={{ padding: "14px 8px" }}><StatusBadge status={trx.status} type="order" /></td>
+
+      <td style={{ padding: "14px 8px" }}>
+        <StatusBadge status={trx.paymentStatus} type="payment" />
+      </td>
+
+      <td style={{ padding: "14px 8px" }}>
+        {trx.buktiFoto ? (
+          <img src={trx.buktiFoto} alt="Bukti" style={{
+            width: 44, height: 44, objectFit: "cover",
+            borderRadius: 8, border: "1.5px solid #E2E8F0",
+          }} />
+        ) : (
+          <div style={{
+            width: 44, height: 44, background: "#F8FAFC", borderRadius: 8,
+            border: "1.5px dashed #CBD5E1", display: "flex",
+            alignItems: "center", justifyContent: "center",
+          }}>
+            <Camera size={16} color="#CBD5E1" />
+          </div>
+        )}
+      </td>
+
+      <td style={{ padding: "14px 12px 14px 8px" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {trx.verifikasi_pembayaran !== null && trx.orderStatus !== "cancelled" && (
+            <ActionBtn icon={CheckCircle} color="#10B981" title="Konfirmasi Order" onClick={() => onKonfirmasi(trx.id)} />
+          )}
+          {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
+            <ActionBtn icon={CreditCard} color="#8B5CF6" title="Verifikasi Pembayaran" onClick={() => onVerifikasi(trx)} />
+          )}
+          <ActionBtn icon={Printer} color="#475569" title="Cetak Struk" onClick={() => onPrint(trx)} />
+          {(trx.status === "Dikonfirmasi" || trx.status === "Selesai") && (
+            <ActionBtn icon={Camera} color="#10B981" title="Ambil Foto Bukti" onClick={() => onFoto(trx)} />
+          )}
+          {trx.status === "Selesai" && trx.orderHistory?.length > 0 && (
+            <ActionBtn icon={History} color="#8B5CF6" title="Riwayat Order" onClick={() => onHistory(trx)} />
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function ActionBtn({ icon: Icon, color, title, onClick }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button title={title} onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        border: "none", cursor: "pointer", borderRadius: 8,
+        width: 34, height: 34, display: "flex", alignItems: "center",
+        justifyContent: "center", transition: "all .15s",
+        background: hov ? color + "18" : "transparent",
+        color: hov ? color : "#94A3B8",
+      }}>
+      <Icon size={16} />
+    </button>
+  );
+}
+
+// ─── MOBILE CARD ──────────────────────────────────────────────────────────────
+function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory }) {
+  const orderCfg = ORDER_STATUS_CONFIG[trx.status] || {};
+  return (
+    <div style={{
+      background: "#fff", borderRadius: 14, marginBottom: 10,
+      boxShadow: "0 1px 4px rgba(0,0,0,.07)",
+      overflow: "hidden", borderLeft: `4px solid ${orderCfg.color || "#CBD5E1"}`,
+    }}>
+      {/* summary row */}
+      <button onClick={onToggle} style={{
+        width: "100%", background: "none", border: "none", cursor: "pointer",
+        padding: "14px 16px", textAlign: "left",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, color: "#0F172A", fontSize: 15 }}>{trx.nama}</div>
+          <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>{trx.date} · {formatRupiah(trx.total)}</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
+            <StatusBadge status={trx.status} type="order" />
+            <StatusBadge status={trx.paymentStatus} type="payment" />
+          </div>
+        </div>
+        <div style={{ color: "#94A3B8", marginLeft: 10 }}>
+          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </div>
+      </button>
+
+      {/* expanded detail */}
+      {expanded && (
+        <div style={{ padding: "0 16px 16px", borderTop: "1px solid #F1F5F9" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
+            {[
+              ["Kamar", trx.blok],
+              ["No. Register", trx.nomorRegister],
+              ["Pengirim", trx.namaPengirim || "-"],
+              ["Metode", trx.paymentMethod === "transfer" ? "Transfer Bank" : "COD"],
+            ].map(([lbl, val]) => (
+              <div key={lbl}>
+                <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5 }}>{lbl}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#334155", marginTop: 2 }}>{val}</div>
+              </div>
+            ))}
+          </div>
+
+          {trx.items?.length > 0 && (
+            <div style={{ marginTop: 14, background: "#F8FAFC", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Item Pesanan</div>
+              {trx.items.map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                  <span style={{ color: "#475569" }}>{item.name} <span style={{ color: "#94A3B8" }}>×{item.qty}</span></span>
+                  <span style={{ fontWeight: 600, color: "#0F172A" }}>{formatRupiah(item.price * item.qty)}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: "1px dashed #E2E8F0", marginTop: 8, paddingTop: 8, display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, color: "#0F172A" }}>
+                <span>Total</span>
+                <span>{formatRupiah(trx.total)}</span>
+              </div>
+            </div>
+          )}
+
+          {trx.buktiFoto && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5, marginBottom: 6 }}>Foto Bukti</div>
+              <img src={trx.buktiFoto} alt="Bukti" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 10, border: "1.5px solid #E2E8F0" }} />
+            </div>
+          )}
+
+          {/* action buttons */}
+          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+            {trx.verifikasi_pembayaran !== null && trx.orderStatus !== "cancelled" && (
+              <MobileActionBtn icon={CheckCircle} label="Konfirmasi" color="#10B981" onClick={() => onKonfirmasi(trx.id)} />
+            )}
+            {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
+              <MobileActionBtn icon={CreditCard} label="Verifikasi" color="#8B5CF6" onClick={() => onVerifikasi(trx)} />
+            )}
+            <MobileActionBtn icon={Printer} label="Cetak" color="#475569" onClick={() => onPrint(trx)} />
+            {(trx.status === "Dikonfirmasi" || trx.status === "Selesai") && (
+              <MobileActionBtn icon={Camera} label="Foto" color="#10B981" onClick={() => onFoto(trx)} />
+            )}
+            {trx.status === "Selesai" && trx.orderHistory?.length > 0 && (
+              <MobileActionBtn icon={History} label="Riwayat" color="#8B5CF6" onClick={() => onHistory(trx)} />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileActionBtn({ icon: Icon, label, color, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 5, padding: "7px 12px",
+      borderRadius: 8, border: `1.5px solid ${color}20`, background: color + "10",
+      color, fontSize: 12, fontWeight: 600, cursor: "pointer",
+    }}>
+      <Icon size={14} />
+      {label}
+    </button>
+  );
+}
+
+// ─── VERIFIKASI MODAL ─────────────────────────────────────────────────────────
+function ModalVerifikasi({ open, data, note, onNoteChange, onVerify, onClose }) {
+  if (!open || !data) return null;
+  const isPending = data.payment_status === "process";
+  return (
+    <Modal open={open} onClose={onClose} title="Verifikasi Pembayaran" maxWidth={560}>
+      {/* order info */}
+      <div style={{ background: "linear-gradient(135deg,#EFF6FF,#F0FDF4)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          {[
+            ["Kode Order", data.orderCode],
+            ["Nama WBP", data.nama],
+            ["Total", formatRupiah(data.amount || data.total)],
+          ].map(([lbl, val]) => (
+            <div key={lbl}>
+              <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", letterSpacing: .5 }}>{lbl}</div>
+              <div style={{ fontSize: lbl === "Total" ? 18 : 14, fontWeight: lbl === "Total" ? 700 : 600, color: "#0F172A", marginTop: 3 }}>{val}</div>
+            </div>
+          ))}
+          <div>
+            <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", letterSpacing: .5 }}>Status Pembayaran</div>
+            <div style={{ marginTop: 3 }}><StatusBadge status={data.payment_status} type="payment" /></div>
+          </div>
+        </div>
+      </div>
+
+      {/* payment detail */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 12, textTransform: "uppercase", letterSpacing: .5 }}>Detail Pembayaran</div>
+        <div style={{ borderRadius: 10, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+          {[
+            ["Metode", data.payment_method === "transfer" ? "Transfer Bank" : data.payment_method?.toUpperCase()],
+            ["Bank", data.bank_name],
+            ["No. Rekening", data.account_number],
+            ["Tanggal", data.created_at ? formatTanggal(data.created_at) : null],
+            ["Diverifikasi", data.verified_at ? formatTanggal(data.verified_at) : null],
+          ].filter(([, v]) => v).map(([lbl, val], i, arr) => (
+            <div key={lbl} style={{
+              display: "flex", justifyContent: "space-between", padding: "10px 14px",
+              background: i % 2 === 0 ? "#FAFBFF" : "#fff",
+              borderBottom: i < arr.length - 1 ? "1px solid #F1F5F9" : "none",
+            }}>
+              <span style={{ color: "#64748B", fontSize: 13 }}>{lbl}</span>
+              <span style={{ fontWeight: 600, fontSize: 13, color: "#0F172A" }}>{val}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* proof image */}
+      {data.proof_of_payment && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 10, textTransform: "uppercase", letterSpacing: .5 }}>Bukti Pembayaran</div>
+          <div style={{ textAlign: "center", background: "#F8FAFC", borderRadius: 12, padding: 16, border: "1.5px dashed #CBD5E1" }}>
+            <img src={data.proof_of_payment} alt="Bukti" style={{ maxWidth: "100%", maxHeight: 220, borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,.1)" }} />
+          </div>
+        </div>
+      )}
+
+      {/* action */}
+      {isPending && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 10, textTransform: "uppercase", letterSpacing: .5 }}>Tindakan</div>
+          <textarea
+            value={note} onChange={e => onNoteChange(e.target.value)}
+            placeholder="Catatan (wajib jika menolak pembayaran)..."
+            rows={3}
+            style={{
+              width: "100%", padding: "10px 12px", borderRadius: 10,
+              border: "1.5px solid #E2E8F0", fontSize: 13, resize: "vertical",
+              outline: "none", color: "#334155", boxSizing: "border-box", marginBottom: 12,
+            }}
+          />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <button onClick={() => onVerify("completed")} style={{
+              padding: "12px 0", borderRadius: 10, border: "none", cursor: "pointer",
+              background: "linear-gradient(135deg,#10B981,#059669)", color: "#fff",
+              fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center",
+              justifyContent: "center", gap: 8,
+            }}>
+              <Check size={18} /> Terima
+            </button>
+            <button onClick={() => onVerify("cancelled")} disabled={!note.trim()} style={{
+              padding: "12px 0", borderRadius: 10, border: "none",
+              cursor: note.trim() ? "pointer" : "not-allowed",
+              background: note.trim() ? "linear-gradient(135deg,#EF4444,#DC2626)" : "#E2E8F0",
+              color: note.trim() ? "#fff" : "#94A3B8",
+              fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center",
+              justifyContent: "center", gap: 8,
+            }}>
+              <XIcon size={18} /> Tolak
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ─── HISTORY MODAL ────────────────────────────────────────────────────────────
+function ModalHistory({ open, history, onClose }) {
+  return (
+    <Modal open={open} onClose={onClose} title="Riwayat Order" maxWidth={600}>
+      {history.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "#94A3B8" }}>
+          <History size={48} style={{ marginBottom: 12, opacity: .5 }} />
+          <p>Tidak ada riwayat order</p>
+        </div>
+      ) : (
+        <div style={{ position: "relative" }}>
+          {/* timeline line */}
+          <div style={{ position: "absolute", left: 19, top: 8, bottom: 8, width: 2, background: "#E2E8F0" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {history.map((h, i) => {
+              const cfg = PAYMENT_STATUS_CONFIG[h.status] || {};
+              return (
+                <div key={h.id} style={{ display: "flex", gap: 14, position: "relative" }}>
+                  {/* dot */}
+                  <div style={{
+                    width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                    background: cfg.bg || "#F1F5F9", border: `2px solid ${cfg.color || "#CBD5E1"}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 12, fontWeight: 700, color: cfg.color || "#64748B",
+                    position: "relative", zIndex: 1,
+                  }}>
+                    {history.length - i}
+                  </div>
+                  <div style={{ flex: 1, background: "#FAFBFF", borderRadius: 12, padding: "12px 14px", border: "1px solid #F1F5F9" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                      <StatusBadge status={h.status} type="order" />
+                      <span style={{ fontSize: 11, color: "#94A3B8", whiteSpace: "nowrap" }}>{formatTanggal(h.created_at)}</span>
+                    </div>
+                    {h.note && (
+                      <div style={{ marginTop: 8, padding: "8px 10px", background: "#fff", borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 13, color: "#475569" }}>
+                        {h.note}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end" }}>
+        <button onClick={onClose} style={{
+          padding: "10px 24px", borderRadius: 10, border: "none",
+          background: "linear-gradient(135deg,#3B82F6,#2563EB)", color: "#fff",
+          fontWeight: 700, fontSize: 14, cursor: "pointer",
+        }}>Tutup</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function Transaksi() {
-  const [transactions, setTransactions] = useState([]);
-  const [activeTrx, setActiveTrx] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [expandedRows, setExpandedRows] = useState(new Set());
+  const [transactions, setTransactions]           = useState([]);
+  const [activeTrx, setActiveTrx]                 = useState(null);
+  const [loading, setLoading]                     = useState(true);
+  const [expandedRows, setExpandedRows]           = useState(new Set());
+  const [search, setSearch]                       = useState("");
+  const [filterStatus, setFilterStatus]           = useState("all");
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  const [showModalFoto, setShowModalFoto] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [showModalHistory, setShowModalHistory] = useState(false);
-  const [selectedOrderHistory, setSelectedOrderHistory] = useState([]);
-  const [showModalVerifikasi, setShowModalVerifikasi] = useState(false);
-  const [selectedPaymentData, setSelectedPaymentData] = useState(null);
-  const [verifikasiNote, setVerifikasiNote] = useState("");
-  
+  const [showModalFoto, setShowModalFoto]                   = useState(false);
+  const [selectedTransaction, setSelectedTransaction]       = useState(null);
+  const [showModalHistory, setShowModalHistory]             = useState(false);
+  const [selectedOrderHistory, setSelectedOrderHistory]     = useState([]);
+  const [showModalVerifikasi, setShowModalVerifikasi]       = useState(false);
+  const [selectedPaymentData, setSelectedPaymentData]       = useState(null);
+  const [verifikasiNote, setVerifikasiNote]                 = useState("");
+
   const { fetchOrder, updateOrderStatus } = useOrderStore();
   const { fetchPaymentByOrderId, verifyPayment } = usePaymentStore();
 
-  // Fetch transactions from backend
-  useEffect(() => {
-    loadTransactions();
-  }, []);
+  useEffect(() => { loadTransactions(); }, []);
 
   const loadTransactions = async () => {
     try {
       setLoading(true);
-      console.log("Loading transactions...");
-
       const orders = await fetchOrder();
-      console.log("Orders from store:", orders);
-
       if (orders && Array.isArray(orders)) {
-        // Transform backend data to match frontend format
-        const transformedTransactions = orders.map((order) => {
-          console.log("Processing order:", order);
-
-          // Ambil data dari order_data jika ada, atau gunakan fallback
-          const orderData =
-            order.order_data && order.order_data.length > 0
-              ? order.order_data[0]
-              : {};
-
+        const transformed = orders.map((order) => {
+          const orderData = order.order_data?.[0] || {};
           return {
             id: order.order_id || order.id,
             nama: orderData.wbp_name || order.user?.nama || "-",
             blok: orderData.wbp_room || "-",
             nomorRegister: orderData.wbp_register_number || "-",
             namaPengirim: orderData.wbp_sender || "-",
-            date: new Date(
-              order.order_date || order.created_at
-            ).toLocaleDateString("id-ID"),
+            date: new Date(order.order_date || order.created_at).toLocaleDateString("id-ID"),
             total: order.total || order.total_price,
             status: mapOrderStatus(order.status),
-            items:
-              order.items?.map((item) => ({
-                name: item.product_name || item.name,
-                qty: item.quantity,
-                price: parseFloat(item.price) || 0,
-              })) || [],
+            items: order.items?.map((item) => ({
+              name: item.product_name || item.name,
+              qty: item.quantity,
+              price: parseFloat(item.price) || 0,
+            })) || [],
             buktiFoto: order.purchase_receipt_photo || null,
-            // Simpan data order history dari API
             orderHistory: order.order_historie || [],
             orderCode: order.order_code,
             paymentMethod: order.payment_method,
             paymentStatus: order.payment_status,
             orderStatus: order.status,
-            verifikasi_pembayaran: order.payment[0]?.verified_at || null,
-            diverifikasi_oleh: order.payment[0]?.verified_by || null,
-            // Simpan data payment jika ada
+            verifikasi_pembayaran: order.payment?.[0]?.verified_at || null,
+            diverifikasi_oleh: order.payment?.[0]?.verified_by || null,
             paymentData: order.payment || null,
           };
         });
-
-        console.log("Transformed transactions:", transformedTransactions);
-        setTransactions(transformedTransactions);
+        setTransactions(transformed);
       } else {
-        console.log("No orders found or invalid format");
         setTransactions([]);
       }
     } catch (error) {
-      console.error("Error loading transactions:", error);
       toast.error("Gagal memuat data transaksi");
       setTransactions([]);
     } finally {
@@ -108,872 +558,298 @@ export default function Transaksi() {
     }
   };
 
-  console.log("Current transactions state:", transactions);
-
-  // Toggle expand/collapse row untuk mobile
   const toggleRow = (id) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
-    setExpandedRows(newExpanded);
+    const s = new Set(expandedRows);
+    s.has(id) ? s.delete(id) : s.add(id);
+    setExpandedRows(s);
   };
 
-  // Fungsi untuk membuka modal foto
-  const bukaModalFoto = (trx) => {
-    setSelectedTransaction(trx);
-    setShowModalFoto(true);
-  };
+  // modal handlers
+  const bukaModalFoto       = (trx) => { setSelectedTransaction(trx); setShowModalFoto(true); };
+  const tutupModalFoto      = () => { setShowModalFoto(false); setSelectedTransaction(null); };
+  const bukaModalHistory    = (trx) => { setSelectedOrderHistory(trx.orderHistory || []); setShowModalHistory(true); };
+  const tutupModalHistory   = () => { setShowModalHistory(false); setSelectedOrderHistory([]); };
+  const tutupModalVerifikasi = () => { setShowModalVerifikasi(false); setSelectedPaymentData(null); setVerifikasiNote(""); };
 
-  // Fungsi untuk menutup modal foto
-  const tutupModalFoto = () => {
-    setShowModalFoto(false);
-    setSelectedTransaction(null);
-  };
-
-  // Fungsi untuk membuka modal history
-  const bukaModalHistory = (trx) => {
-    setSelectedOrderHistory(trx.orderHistory || []);
-    setShowModalHistory(true);
-  };
-
-  // Fungsi untuk menutup modal history
-  const tutupModalHistory = () => {
-    setShowModalHistory(false);
-    setSelectedOrderHistory([]);
-  };
-
-  // Fungsi untuk membuka modal verifikasi pembayaran
   const bukaModalVerifikasi = async (trx) => {
     try {
-      // Fetch data payment dari order
       const paymentData = await fetchPaymentByOrderId(trx.id);
-
-      console.log("Fetched payment data for verification:", paymentData);
-      
       if (paymentData) {
-        setSelectedPaymentData({
-          ...paymentData,
-          orderId: trx.id,
-          orderCode: trx.orderCode,
-          nama: trx.nama,
-          total: trx.total,
-        });
+        setSelectedPaymentData({ ...paymentData, orderId: trx.id, orderCode: trx.orderCode, nama: trx.nama, total: trx.total });
         setShowModalVerifikasi(true);
       } else {
         toast.error("Data pembayaran tidak ditemukan");
       }
-    } catch (error) {
-      console.error("Error fetching payment data:", error);
+    } catch {
       toast.error("Gagal memuat data pembayaran");
     }
   };
 
-  // Fungsi untuk menutup modal verifikasi
-  const tutupModalVerifikasi = () => {
-    setShowModalVerifikasi(false);
-    setSelectedPaymentData(null);
-    setVerifikasiNote("");
-  };
-
-  // Map backend status to frontend status
-  const mapOrderStatus = (backendStatus) => {
-    const statusMap = {
-      pending: "Menunggu Konfirmasi",
-      process: "Dikonfirmasi",
-      completed: "Selesai",
-      cancelled: "Dibatalkan",
-    };
-    return statusMap[backendStatus] || backendStatus;
-  };
-
-  // Map payment status untuk tampilan
-  const mapPaymentStatus = (status) => {
-    const statusMap = {
-      pending: "Menunggu Verifikasi",
-      completed: "Terverifikasi",
-      cancelled: "Ditolak",
-      expired: "Kadaluarsa",
-    };
-    return statusMap[status] || status;
-  };
-
-  // Warna untuk status pembayaran
-  const getPaymentStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'expired':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-yellow-100 text-yellow-800';
-    }
-  };
-
-  const formatRupiah = (n) => {
-    if (!n) return "Rp 0";
-    return "Rp " + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  };
-
-  // Format tanggal untuk ditampilkan
-  const formatTanggal = (dateString) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  // Map status untuk tampilan history
-  const mapHistoryStatus = (status) => {
-    const statusMap = {
-      pending: "Menunggu Konfirmasi",
-      process: "Dikonfirmasi",
-      completed: "Selesai",
-      cancelled: "Dibatalkan",
-    };
-    return statusMap[status] || status;
-  };
-
-  // Update order status in backend
   const handleKonfirmasi = async (id) => {
     try {
-      console.log("Confirming order:", id);
       await updateOrderStatus(id, "completed");
       toast.success("Transaksi berhasil dikonfirmasi");
-      loadTransactions(); // Reload data
-    } catch (error) {
-      console.error("Error confirming transaction:", error);
+      loadTransactions();
+    } catch {
       toast.error("Gagal mengkonfirmasi transaksi");
     }
   };
 
-  // Handle verifikasi pembayaran
   const handleVerifikasiPembayaran = async (status) => {
     if (!selectedPaymentData) return;
-    console.log("verifikasi", selectedPaymentData.order_id, status, verifikasiNote);
-
     try {
-      const data = {
-        order_id: selectedPaymentData.order_id,
-        status,
-        note: verifikasiNote,
-      };
-
-      
-
-      await verifyPayment(data);
-      toast.success(`Pembayaran berhasil ${status === 'completed' ? 'diverifikasi' : 'ditolak'}`);
-      
-      // Reload data transaksi
+      await verifyPayment({ order_id: selectedPaymentData.order_id, status, note: verifikasiNote });
+      toast.success(`Pembayaran berhasil ${status === "completed" ? "diverifikasi" : "ditolak"}`);
       await loadTransactions();
       tutupModalVerifikasi();
-    } catch (error) {
-      console.error("Error verifying payment:", error);
-      toast.error(`Gagal ${status === 'completed' ? 'memverifikasi' : 'menolak'} pembayaran`);
+    } catch {
+      toast.error("Gagal memproses verifikasi pembayaran");
     }
   };
 
-  // 🧾 CETAK STRUK (tetap sama)
   const handlePrint = (trx) => {
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>Struk Pembelian - ${trx.nama}</title>
-          <style>
-            @media print {
-              @page { size: 80mm auto; margin: 5mm; }
-            }
-            body {
-              font-family: 'Courier New', monospace;
-              font-size: 13px;
-              margin: 0;
-              padding: 10px;
-              width: 80mm;
-            }
-            .header {
-              text-align: center;
-              border-bottom: 1px dashed #000;
-              padding-bottom: 5px;
-              margin-bottom: 5px;
-            }
-            .header h2 { margin: 0; font-size: 16px; }
-            .info { line-height: 1.4; margin-bottom: 5px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { padding: 3px 0; text-align: left; }
-            th { border-bottom: 1px dashed #000; }
-            .total {
-              border-top: 1px dashed #000;
-              font-weight: bold;
-              text-align: right;
-              padding-top: 3px;
-            }
-            .footer {
-              border-top: 1px dashed #000;
-              margin-top: 10px;
-              text-align: center;
-              font-size: 12px;
-              padding-top: 5px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>KOPERASI TABEOM</h2>
-            <div>Jl. Mawar No. 9 Kel. Pallantikan Kec. Bantaeng Kab. Bantaeng.</div>
-            <div>Telp. (0411) 123456</div>
-          </div>
-          <div class="info">
-            <b>Nama WBP:</b> ${trx.nama}<br/>
-            <b>Kamar:</b> ${trx.blok}<br/>
-            <b>No. Register:</b> ${trx.nomorRegister}<br/>
-            <b>Pengirim:</b> ${trx.namaPengirim || "-"}<br/>
-            <b>Tanggal:</b> ${trx.date}<br/>
-          </div>
-          <table>
-            <thead>
+      <html><head><title>Struk - ${trx.nama}</title>
+      <style>
+        @media print { @page { size: 80mm auto; margin: 5mm; } }
+        body { font-family: 'Courier New', monospace; font-size: 13px; margin: 0; padding: 10px; width: 80mm; }
+        .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }
+        .header h2 { margin: 0; font-size: 16px; }
+        .info { line-height: 1.4; margin-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 3px 0; text-align: left; }
+        th { border-bottom: 1px dashed #000; }
+        .total { border-top: 1px dashed #000; font-weight: bold; text-align: right; padding-top: 3px; }
+        .footer { border-top: 1px dashed #000; margin-top: 10px; text-align: center; font-size: 12px; padding-top: 5px; }
+      </style></head>
+      <body>
+        <div class="header"><h2>KOPERASI TABEOM</h2><div>Jl. Mawar No. 9 Kel. Pallantikan Kec. Bantaeng.</div><div>Telp. (0411) 123456</div></div>
+        <div class="info">
+          <b>Nama WBP:</b> ${trx.nama}<br/>
+          <b>Kamar:</b> ${trx.blok}<br/>
+          <b>No. Register:</b> ${trx.nomorRegister}<br/>
+          <b>Pengirim:</b> ${trx.namaPengirim || "-"}<br/>
+          <b>Tanggal:</b> ${trx.date}<br/>
+        </div>
+        <table>
+          <thead><tr><th>No</th><th>Barang</th><th>Qty</th><th style="text-align:right;">Subtotal</th></tr></thead>
+          <tbody>
+            ${trx.items?.map((item, i) => `
               <tr>
-                <th>No</th>
-                <th>Barang</th>
-                <th>Qty</th>
-                <th style="text-align:right;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${trx.items
-                ?.map(
-                  (item, i) => `
-                <tr>
-                  <td>${i + 1}</td>
-                  <td>${item.name}</td>
-                  <td>${item.qty}</td>
-                  <td style="text-align:right;">${formatRupiah(
-                    item.price * item.qty
-                  )}</td>
-                </tr>`
-                )
-                .join("")}
-              <tr>
-                <td colspan="3" class="total">TOTAL</td>
-                <td class="total">${formatRupiah(trx.total)}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="footer">
-            <p>Struk ini wajib diperlihatkan saat penerimaan barang.</p>
-            <p>Terima kasih telah berbelanja di Koperasi TabeOM 🙏</p>
-          </div>
-        </body>
-      </html>
+                <td>${i + 1}</td><td>${item.name}</td><td>${item.qty}</td>
+                <td style="text-align:right;">${formatRupiah(item.price * item.qty)}</td>
+              </tr>`).join("")}
+            <tr><td colspan="3" class="total">TOTAL</td><td class="total">${formatRupiah(trx.total)}</td></tr>
+          </tbody>
+        </table>
+        <div class="footer"><p>Struk ini wajib diperlihatkan saat penerimaan barang.</p><p>Terima kasih 🙏</p></div>
+      </body></html>
     `);
     printWindow.document.close();
     printWindow.print();
   };
 
-  // 🎥 KAMERA - Tetap sama (disingkat)
-  const bukaKamera = async (trx) => {
-    setActiveTrx(trx);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
-    } catch (err) {
-      alert("Gagal mengakses kamera: " + err.message);
-    }
+  // camera
+  const bukaModalFotoFn = (trx) => bukaModalFoto(trx);
+
+  // ─── filter & search
+  const filtered = transactions.filter((t) => {
+    const matchSearch = !search || t.nama.toLowerCase().includes(search.toLowerCase()) || t.nomorRegister.includes(search);
+    const matchFilter = filterStatus === "all" || t.orderStatus === filterStatus;
+    return matchSearch && matchFilter;
+  });
+
+  // ─── stats
+  const stats = {
+    total:     transactions.length,
+    selesai:   transactions.filter(t => t.orderStatus === "completed").length,
+    proses:    transactions.filter(t => t.orderStatus === "process").length,
+    pending:   transactions.filter(t => t.orderStatus === "pending").length,
   };
 
-  const ambilFoto = async () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const fotoData = canvas.toDataURL("image/png");
-
-    try {
-      await updateOrderStatus(activeTrx.id, "completed", fotoData);
-      const updated = transactions.map((trx) =>
-        trx.id === activeTrx.id
-          ? {
-              ...trx,
-              status: "Selesai",
-              buktiFoto: fotoData,
-            }
-          : trx
-      );
-
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach((t) => t.stop());
-      }
-      setActiveTrx(null);
-      setTransactions(updated);
-      toast.success("Foto bukti berhasil disimpan");
-    } catch (error) {
-      console.error("Error saving photo:", error);
-      toast.error("Gagal menyimpan foto bukti");
-    }
-  };
-
-  const batalKamera = () => {
-    if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach((t) => t.stop());
-    }
-    setActiveTrx(null);
-  };
-
+  // ─── RENDER ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gray-100 font-['Poppins']">
-        <main className="flex-1 p-1 relative">
-          <div className="flex justify-center items-center h-64">
-            <p className="text-gray-600">Memuat data transaksi...</p>
-          </div>
-        </main>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh", background: "#F8FAFC" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            width: 44, height: 44, border: "3px solid #E2E8F0",
+            borderTopColor: "#3B82F6", borderRadius: "50%",
+            animation: "spin 1s linear infinite", margin: "0 auto 12px",
+          }} />
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <p style={{ color: "#64748B", fontSize: 14 }}>Memuat data transaksi…</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100 font-['Poppins']">
-      <main className="flex-1 p-1 relative">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">
-          Daftar Transaksi Pengguna
-        </h1>
+    <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "'Inter', 'Poppins', sans-serif" }}>
+      <main style={{ padding: "24px 20px", maxWidth: 1200, margin: "0 auto" }}>
 
-        {/* === MODAL VERIFIKASI PEMBAYARAN === */}
-        {showModalVerifikasi && selectedPaymentData && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Verifikasi Pembayaran
-                </h2>
-                <button
-                  onClick={tutupModalVerifikasi}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
+        {/* ── PAGE HEADER ── */}
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0F172A" }}>Transaksi</h1>
+          <p style={{ margin: "4px 0 0", color: "#64748B", fontSize: 14 }}>Kelola dan pantau semua transaksi pengguna</p>
+        </div>
 
-              {/* Content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-                <div className="space-y-6">
-                  {/* Informasi Order */}
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-gray-800 mb-2">
-                      Informasi Order
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Kode Order</p>
-                        <p className="font-medium">{selectedPaymentData.orderCode}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Nama WBP</p>
-                        <p className="font-medium">{selectedPaymentData.nama}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Total Pembayaran</p>
-                        <p className="font-bold text-lg">{formatRupiah(selectedPaymentData.amount || selectedPaymentData.total)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Status Pembayaran</p>
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getPaymentStatusColor(selectedPaymentData.payment_status)}`}>
-                          {mapPaymentStatus(selectedPaymentData.payment_status)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+        {/* ── STAT CARDS ── */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+          <StatCard icon={ShoppingBag}  label="Total Transaksi" value={stats.total}   color="#3B82F6" bg="#EFF6FF" />
+          <StatCard icon={CheckCircle}  label="Selesai"         value={stats.selesai}  color="#10B981" bg="#ECFDF5" />
+          <StatCard icon={RefreshCw}    label="Diproses"        value={stats.proses}   color="#8B5CF6" bg="#F5F3FF" />
+          <StatCard icon={Clock}        label="Menunggu"        value={stats.pending}  color="#F59E0B" bg="#FFFBEB" />
+        </div>
 
-                  {/* Detail Pembayaran */}
-                  <div>
-                    <h3 className="font-semibold text-gray-800 mb-3">
-                      Detail Pembayaran
-                    </h3>
-                    <div className="space-y-3">
-                      {selectedPaymentData.payment_method && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Metode Pembayaran</span>
-                          <span className="font-medium">
-                            {selectedPaymentData.payment_method === 'transfer' ? 'Transfer Bank' : selectedPaymentData.payment_method.toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      {selectedPaymentData.bank_name && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Bank</span>
-                          <span className="font-medium">{selectedPaymentData.bank_name}</span>
-                        </div>
-                      )}
-                      {selectedPaymentData.account_number && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">No. Rekening</span>
-                          <span className="font-medium">{selectedPaymentData.account_number}</span>
-                        </div>
-                      )}
-                      {selectedPaymentData.created_at && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Tanggal Pembayaran</span>
-                          <span className="font-medium">{formatTanggal(selectedPaymentData.created_at)}</span>
-                        </div>
-                      )}
-                      {selectedPaymentData.verified_at && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Diverifikasi Pada</span>
-                          <span className="font-medium">{formatTanggal(selectedPaymentData.verified_at)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Bukti Pembayaran */}
-                  {selectedPaymentData.proof_of_payment && (
-                    <div>
-                      <h3 className="font-semibold text-gray-800 mb-3">
-                        Bukti Pembayaran
-                      </h3>
-                      <div className="flex justify-center">
-                        <img
-                          src={selectedPaymentData.proof_of_payment}
-                          alt="Bukti Pembayaran"
-                          className="max-w-full h-auto max-h-64 rounded-lg border border-gray-300 shadow"
-                        />
-                      </div>
-                      <div className="mt-2 text-center text-sm text-gray-500">
-                        Klik gambar untuk melihat ukuran penuh
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Form Verifikasi */}
-                  {selectedPaymentData.payment_status === 'process' && (
-                    <div>
-                      <h3 className="font-semibold text-gray-800 mb-3">
-                        Tindakan Verifikasi
-                      </h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Catatan (wajib jika menolak)
-                          </label>
-                          <textarea
-                            value={verifikasiNote}
-                            onChange={(e) => setVerifikasiNote(e.target.value)}
-                            placeholder="Masukkan catatan jika menolak pembayaran..."
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            rows="3"
-                          />
-                        </div>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => handleVerifikasiPembayaran('completed')}
-                            className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
-                          >
-                            <Check size={20} />
-                            Terima Pembayaran
-                          </button>
-                          <button
-                            onClick={() => handleVerifikasiPembayaran('cancelled')}
-                            disabled={!verifikasiNote.trim()}
-                            className={`flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
-                              !verifikasiNote.trim()
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-red-600 text-white hover:bg-red-700 transition-colors'
-                            }`}
-                          >
-                            <XIcon size={20} />
-                            Tolak Pembayaran
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+        {/* ── TOOLBAR ── */}
+        <div style={{
+          background: "#fff", borderRadius: 14, padding: "14px 16px",
+          marginBottom: 16, display: "flex", gap: 10, flexWrap: "wrap",
+          alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,.06)",
+        }}>
+          {/* search */}
+          <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
+            <Search size={15} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Cari nama atau no. register…"
+              style={{
+                width: "100%", padding: "9px 12px 9px 34px", borderRadius: 9,
+                border: "1.5px solid #E2E8F0", fontSize: 13, color: "#334155",
+                outline: "none", background: "#F8FAFC", boxSizing: "border-box",
+              }}
+            />
           </div>
-        )}
 
-        {/* === MODAL ORDER HISTORY === (tetap sama) */}
-        {showModalHistory && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Riwayat Order
-                </h2>
-                <button
-                  onClick={tutupModalHistory}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                {selectedOrderHistory.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <History size={48} className="mx-auto mb-4 text-gray-300" />
-                    <p>Tidak ada riwayat order</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {selectedOrderHistory.map((history, index) => (
-                      <div
-                        key={history.id}
-                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold">
-                              {selectedOrderHistory.length - index}
-                            </div>
-                            <div>
-                              <span
-                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                  history.status === "completed"
-                                    ? "bg-green-100 text-green-800"
-                                    : history.status === "process"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : history.status === "pending"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
-                              >
-                                {mapHistoryStatus(history.status)}
-                              </span>
-                            </div>
-                          </div>
-                          <span className="text-sm text-gray-500">
-                            {formatTanggal(history.created_at)}
-                          </span>
-                        </div>
-                        
-                        {history.note && (
-                          <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-700">
-                              {history.note}
-                            </p>
-                          </div>
-                        )}
-                        
-                        <div className="mt-2 flex justify-between text-xs text-gray-500">
-                          <span>ID: {history.id}</span>
-                          <span>Order ID: {history.order_id}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
-                <button
-                  onClick={tutupModalHistory}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Tutup
-                </button>
-              </div>
-            </div>
+          {/* filter */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {[["all","Semua"],["pending","Menunggu"],["process","Diproses"],["completed","Selesai"],["cancelled","Batal"]].map(([val, lbl]) => (
+              <button key={val} onClick={() => setFilterStatus(val)} style={{
+                padding: "8px 14px", borderRadius: 8, border: "1.5px solid",
+                borderColor: filterStatus === val ? "#3B82F6" : "#E2E8F0",
+                background: filterStatus === val ? "#EFF6FF" : "#fff",
+                color: filterStatus === val ? "#3B82F6" : "#64748B",
+                fontSize: 12, fontWeight: 600, cursor: "pointer",
+              }}>{lbl}</button>
+            ))}
           </div>
-        )}
 
-        {/* === DAFTAR TRANSAKSI === */}
-        {transactions.length === 0 ? (
-          <p className="text-gray-600">Belum ada transaksi yang masuk.</p>
+          <button onClick={loadTransactions} style={{
+            padding: "9px 14px", borderRadius: 9, border: "1.5px solid #E2E8F0",
+            background: "#fff", color: "#64748B", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 5, fontSize: 13,
+          }}>
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
+
+        {/* ── EMPTY STATE ── */}
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#94A3B8" }}>
+            <AlertCircle size={56} style={{ marginBottom: 14, opacity: .4 }} />
+            <p style={{ fontSize: 16, fontWeight: 600, color: "#64748B" }}>
+              {transactions.length === 0 ? "Belum ada transaksi" : "Tidak ada hasil yang cocok"}
+            </p>
+            <p style={{ fontSize: 13, marginTop: 4 }}>Coba ubah filter atau kata kunci pencarian</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-lg shadow-md">
-            {/* TAMPILAN DESKTOP */}
-            <table className="min-w-full border-collapse hidden md:table">
-              <thead className="bg-blue-700 text-white">
-                <tr>
-                  <th className="px-4 py-3">No</th>
-                  <th className="px-4 py-3">Nama</th>
-                  <th className="px-4 py-3">Kamar</th>
-                  <th className="px-4 py-3">No. Reg</th>
-                  <th className="px-4 py-3">Tanggal</th>
-                  <th className="px-4 py-3">Total</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Pembayaran</th>
-                  <th className="px-4 py-3">Foto</th>
-                  <th className="px-4 py-3">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((trx, i) => (
-                  <tr key={trx.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3">{i + 1}</td>
-                    <td className="px-4 py-3">{trx.nama}</td>
-                    <td className="px-4 py-3">{trx.blok}</td>
-                    <td className="px-4 py-3">{trx.nomorRegister}</td>
-                    <td className="px-4 py-3">{trx.date}</td>
-                    <td className="px-4 py-3">{formatRupiah(trx.total)}</td>
-                    <td
-                      className={`px-4 py-3 font-semibold ${
-                        trx.status === "Selesai"
-                          ? "text-green-600"
-                          : trx.status === "Dikonfirmasi"
-                          ? "text-blue-600"
-                          : "text-yellow-600"
-                      }`}
-                    >
-                      {trx.status}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm">
-                          {trx.paymentMethod === 'transfer' ? 'Transfer' : 'COD'}
-                        </span>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(trx.paymentStatus)}`}>
-                          {mapPaymentStatus(trx.paymentStatus)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {trx.buktiFoto ? (
-                        <div className="flex flex-col items-center gap-2">
-                          <img
-                            src={trx.buktiFoto}
-                            alt="Bukti"
-                            className="w-20 h-20 object-cover rounded-lg shadow-md border"
-                          />
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 italic">
-                          Belum ada foto
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {trx.verifikasi_pembayaran !== null && trx.orderStatus !== "cancelled" && (
-                          <button
-                            onClick={() => handleKonfirmasi(trx.id)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Konfirmasi"
-                          >
-                            <CheckCircle size={22} />
-                          </button>
-                        )}
-
-                        {/* Tombol Verifikasi Pembayaran (hanya untuk transfer yang pending) */}
-                        {trx.paymentMethod === 'transfer' && trx.paymentStatus === 'process' && (
-                          <button
-                            onClick={() => bukaModalVerifikasi(trx)}
-                            className="text-purple-600 hover:text-purple-800"
-                            title="Verifikasi Pembayaran"
-                          >
-                            <CreditCard size={22} />
-                          </button>
-                        )}
-
-                        {/* 🔁 Printer tetap bisa dipakai kapan saja */}
-                        <button
-                          onClick={() => handlePrint(trx)}
-                          className="text-gray-700 hover:text-gray-900"
-                          title="Cetak Struk"
-                        >
-                          <Printer size={22} />
-                        </button>
-
-                        {/* Kamera tetap bisa dipakai kapan sudah dicetak */}
-                        {(trx.status === "Dikonfirmasi" ||
-                          trx.status === "Selesai") && (
-                          <button
-                            onClick={() => bukaModalFoto(trx)}
-                            className="text-green-600 hover:text-green-800"
-                            title="Ambil Foto Bukti"
-                          >
-                            <Camera size={22} />
-                          </button>
-                        )}
-
-                        {/* Tombol History - hanya untuk order yang selesai */}
-                        {trx.status === "Selesai" && trx.orderHistory && trx.orderHistory.length > 0 && (
-                          <button
-                            onClick={() => bukaModalHistory(trx)}
-                            className="text-purple-600 hover:text-purple-800"
-                            title="Lihat Riwayat Order"
-                          >
-                            <History size={22} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <>
+            {/* ── DESKTOP TABLE ── */}
+            <div style={{
+              background: "#fff", borderRadius: 14, overflow: "hidden",
+              boxShadow: "0 1px 4px rgba(0,0,0,.07)", display: "none",
+            }}
+              className="desktop-table">
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#0F172A" }}>
+                    {["","#","Nama & Kamar","Tanggal","Total","Status Order","Pembayaran","Foto","Aksi"].map(h => (
+                      <th key={h} style={{
+                        padding: h === "" ? "14px 0 14px 12px" : "14px 10px",
+                        textAlign: "left", fontSize: 11, fontWeight: 700,
+                        color: "#94A3B8", textTransform: "uppercase", letterSpacing: 0.7,
+                        whiteSpace: "nowrap",
+                      }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((trx, i) => (
+                    <TrxRow
+                      key={trx.id} trx={trx} index={i}
+                      onKonfirmasi={handleKonfirmasi}
+                      onVerifikasi={bukaModalVerifikasi}
+                      onPrint={handlePrint}
+                      onFoto={bukaModalFoto}
+                      onHistory={bukaModalHistory}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-            {/* TAMPILAN MOBILE */}
-            <div className="md:hidden">
-              {transactions.map((trx, i) => (
-                <div key={trx.id} className="border-b p-4">
-                  <div 
-                    className="flex justify-between items-center cursor-pointer"
-                    onClick={() => toggleRow(trx.id)}
-                  >
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-800">{trx.nama}</div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        {trx.date} • {formatRupiah(trx.total)}
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                          trx.status === "Selesai"
-                            ? "bg-green-100 text-green-800"
-                            : trx.status === "Dikonfirmasi"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}>
-                          {trx.status}
-                        </span>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(trx.paymentStatus)}`}>
-                          {mapPaymentStatus(trx.paymentStatus)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      {expandedRows.has(trx.id) ? (
-                        <ChevronUp size={20} className="text-gray-500" />
-                      ) : (
-                        <ChevronDown size={20} className="text-gray-500" />
-                      )}
-                    </div>
-                  </div>
-
-                  {expandedRows.has(trx.id) && (
-                    <div className="mt-4 space-y-3">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-600">Kamar:</span>
-                          <p>{trx.blok}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">No. Reg:</span>
-                          <p>{trx.nomorRegister}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Pengirim:</span>
-                          <p>{trx.namaPengirim || "-"}</p>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-600">Metode:</span>
-                          <p>{trx.paymentMethod === 'transfer' ? 'Transfer' : 'COD'}</p>
-                        </div>
-                      </div>
-
-                      {/* Foto Bukti */}
-                      <div>
-                        <span className="font-medium text-gray-600 text-sm">Foto Bukti:</span>
-                        {trx.buktiFoto ? (
-                          <div className="mt-1">
-                            <img
-                              src={trx.buktiFoto}
-                              alt="Bukti"
-                              className="w-24 h-24 object-cover rounded-lg shadow border"
-                            />
-                          </div>
-                        ) : (
-                          <p className="text-gray-400 italic text-sm">Belum ada foto</p>
-                        )}
-                      </div>
-
-                      {/* Items */}
-                      {trx.items && trx.items.length > 0 && (
-                        <div>
-                          <span className="font-medium text-gray-600 text-sm">Items:</span>
-                          <div className="mt-1 space-y-1">
-                            {trx.items.map((item, index) => (
-                              <div key={index} className="flex justify-between text-sm">
-                                <span>{item.name} (x{item.qty})</span>
-                                <span>{formatRupiah(item.price * item.qty)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Aksi */}
-                      <div className="flex flex-wrap gap-3 pt-2 border-t">
-                        {trx.status === "Menunggu Konfirmasi" && (
-                          <button
-                            onClick={() => handleKonfirmasi(trx.id)}
-                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
-                            title="Konfirmasi"
-                          >
-                            <CheckCircle size={18} />
-                            <span>Konfirmasi</span>
-                          </button>
-                        )}
-
-                        {/* Tombol Verifikasi Pembayaran */}
-                        {trx.paymentMethod === 'transfer' && trx.paymentStatus === 'process' && (
-                          <button
-                            onClick={() => bukaModalVerifikasi(trx)}
-                            className="flex items-center gap-1 text-purple-600 hover:text-purple-800 text-sm"
-                            title="Verifikasi Pembayaran"
-                          >
-                            <CreditCard size={18} />
-                            <span>Verifikasi</span>
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => handlePrint(trx)}
-                          className="flex items-center gap-1 text-gray-700 hover:text-gray-900 text-sm"
-                          title="Cetak Struk"
-                        >
-                          <Printer size={18} />
-                          <span>Cetak</span>
-                        </button>
-
-                        {(trx.status === "Dikonfirmasi" || trx.status === "Selesai") && (
-                          <button
-                            onClick={() => bukaModalFoto(trx)}
-                            className="flex items-center gap-1 text-green-600 hover:text-green-800 text-sm"
-                            title="Ambil Foto Bukti"
-                          >
-                            <Camera size={18} />
-                            <span>Foto</span>
-                          </button>
-                        )}
-
-                        {trx.status === "Selesai" && trx.orderHistory && trx.orderHistory.length > 0 && (
-                          <button
-                            onClick={() => bukaModalHistory(trx)}
-                            className="flex items-center gap-1 text-purple-600 hover:text-purple-800 text-sm"
-                            title="Lihat Riwayat Order"
-                          >
-                            <History size={18} />
-                            <span>Riwayat</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+            {/* ── MOBILE CARDS ── */}
+            <div className="mobile-cards">
+              {filtered.map((trx) => (
+                <TrxCard
+                  key={trx.id} trx={trx}
+                  expanded={expandedRows.has(trx.id)}
+                  onToggle={() => toggleRow(trx.id)}
+                  onKonfirmasi={handleKonfirmasi}
+                  onVerifikasi={bukaModalVerifikasi}
+                  onPrint={handlePrint}
+                  onFoto={bukaModalFoto}
+                  onHistory={bukaModalHistory}
+                />
               ))}
             </div>
+          </>
+        )}
+
+        {/* count info */}
+        {filtered.length > 0 && (
+          <div style={{ marginTop: 12, textAlign: "right", fontSize: 12, color: "#94A3B8" }}>
+            Menampilkan {filtered.length} dari {transactions.length} transaksi
           </div>
         )}
       </main>
+
+      {/* ── MODALS ── */}
+      <ModalVerifikasi
+        open={showModalVerifikasi}
+        data={selectedPaymentData}
+        note={verifikasiNote}
+        onNoteChange={setVerifikasiNote}
+        onVerify={handleVerifikasiPembayaran}
+        onClose={tutupModalVerifikasi}
+      />
+
+      <ModalHistory
+        open={showModalHistory}
+        history={selectedOrderHistory}
+        onClose={tutupModalHistory}
+      />
+
       <ModalAmbilFoto
         isOpen={showModalFoto}
         onClose={tutupModalFoto}
         transaction={selectedTransaction}
       />
+
+      {/* responsive styles */}
+      <style>{`
+        .desktop-table { display: none !important; }
+        .mobile-cards  { display: block !important; }
+        @media (min-width: 768px) {
+          .desktop-table { display: block !important; }
+          .mobile-cards  { display: none !important; }
+        }
+        * { box-sizing: border-box; }
+        input:focus { border-color: #3B82F6 !important; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+        textarea:focus { border-color: #3B82F6 !important; box-shadow: 0 0 0 3px rgba(59,130,246,.12); outline: none; }
+      `}</style>
     </div>
   );
 }
