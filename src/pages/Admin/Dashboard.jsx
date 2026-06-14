@@ -508,7 +508,8 @@ export default function Dashboard() {
               Rp.{" "}
               {orders.length > 0
                 ? (
-                    orders.reduce((sum, order) => sum + (order.total || 0), 0) /
+                    .filter(order => order.status === "completed")
+  .reduce((sum, order) => sum + (order.total || 0), 0) /
                     orders.length
                   ).toLocaleString("id-ID", { maximumFractionDigits: 0 })
                 : "0"}
