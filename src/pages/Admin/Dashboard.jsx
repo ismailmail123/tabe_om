@@ -507,9 +507,9 @@ export default function Dashboard() {
             <p className="text-2xl font-bold text-purple-600">
               Rp.{" "}
               {orders.length > 0
-                ? (
+                ? ( orders
                     .filter(order => order.status === "completed")
-  .reduce((sum, order) => sum + (order.total || 0), 0) /
+                    .reduce((sum, order) => sum + (order.total || 0), 0) /
                     orders.length
                   ).toLocaleString("id-ID", { maximumFractionDigits: 0 })
                 : "0"}
