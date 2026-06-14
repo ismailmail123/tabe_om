@@ -132,7 +132,7 @@ const Produk = () => {
     "w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition bg-gray-50";
 
   return (
-    <div className="min-h-screen bg-[#F0F4FF] p-4 md:p-6 font-['Poppins']">
+    <div className="min-h-screen bg-[#F0F4FF] p-4 pb-24 md:p-6 md:pb-6 font-['Poppins']">
       <div className="max-w-6xl mx-auto space-y-5">
 
         {/* ── Page header ── */}
