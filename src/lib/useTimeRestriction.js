@@ -7,7 +7,7 @@ const useTimeRestriction = () => {
     const checkTime = () => {
       const now = new Date();
       const hour = now.getHours();
-      setIsRestricted(hour >= 23 || hour < 8);
+      setIsRestricted(hour >= 20 || hour < 8);
     };
 
     checkTime();
