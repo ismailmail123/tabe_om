@@ -27,6 +27,9 @@ import {
   ShieldAlert,
   Ban,
   AlertTriangle,
+  Package,
+  User,
+  Send,
 } from "lucide-react";
 import useOrderStore from "../../../stores/useOrderStore";
 import usePaymentStore from "../../../stores/usePaymentStore";
@@ -171,83 +174,236 @@ function FotoThumb({ src, onClick, size = 44 }) {
   );
 }
 
+// ─── DETAIL PANEL (shared content for desktop expand row & mobile card) ──────
+function TrxDetailPanel({ trx, onLihatFoto }) {
+  return (
+    <div>
+      {/* WBP & pengirim info */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+        gap: 12, marginBottom: 16,
+      }}>
+        <div style={{
+          background: "#EFF6FF", borderRadius: 10, padding: "12px 14px",
+          border: "1px solid #DBEAFE", display: "flex", gap: 10, alignItems: "flex-start",
+        }}>
+          <div style={{ background: "#DBEAFE", borderRadius: 8, padding: 7, flexShrink: 0 }}>
+            <User size={15} color="#3B82F6" />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "#3B82F6", textTransform: "uppercase", letterSpacing: .5, fontWeight: 700 }}>
+              Penerima Barang (WBP)
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginTop: 3 }}>{trx.nama}</div>
+            <div style={{ fontSize: 12, color: "#64748B", marginTop: 1 }}>
+              Kamar {trx.blok} · Reg {trx.nomorRegister}
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          background: "#F5F3FF", borderRadius: 10, padding: "12px 14px",
+          border: "1px solid #E9D5FF", display: "flex", gap: 10, alignItems: "flex-start",
+        }}>
+          <div style={{ background: "#E9D5FF", borderRadius: 8, padding: 7, flexShrink: 0 }}>
+            <Send size={15} color="#8B5CF6" />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "#8B5CF6", textTransform: "uppercase", letterSpacing: .5, fontWeight: 700 }}>
+              Dibelikan / Dikirim Oleh
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginTop: 3 }}>
+              {trx.namaPengirim || "-"}
+            </div>
+            <div style={{ fontSize: 12, color: "#64748B", marginTop: 1 }}>
+              {trx.paymentMethod === "transfer" ? "Pembayaran via Transfer" : "Pembayaran COD"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* daftar barang */}
+      <div style={{ marginBottom: trx.buktiFoto ? 16 : 0 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6, marginBottom: 8,
+          fontSize: 12, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: .5,
+        }}>
+          <Package size={13} color="#64748B" /> Barang yang Dibeli ({trx.items?.length || 0})
+        </div>
+        <div style={{ border: "1px solid #E2E8F0", borderRadius: 10, overflow: "hidden" }}>
+          {trx.items?.length > 0 ? (
+            trx.items.map((item, i) => (
+              <div key={i} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "10px 14px",
+                background: i % 2 === 0 ? "#FAFBFF" : "#fff",
+                borderBottom: i < trx.items.length - 1 ? "1px solid #F1F5F9" : "none",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 22, height: 22, borderRadius: 6, background: "#EFF6FF",
+                    color: "#3B82F6", fontSize: 11, fontWeight: 700, flexShrink: 0,
+                  }}>{i + 1}</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{item.name}</div>
+                    <div style={{ fontSize: 12, color: "#94A3B8" }}>
+                      {item.qty} × {formatRupiah(item.price)}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>
+                  {formatRupiah(item.price * item.qty)}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ padding: "14px", fontSize: 13, color: "#94A3B8", textAlign: "center" }}>
+              Tidak ada data barang.
+            </div>
+          )}
+          <div style={{
+            display: "flex", justifyContent: "space-between", padding: "10px 14px",
+            background: "#F0FDF4", borderTop: "1px dashed #BBF7D0",
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#166534" }}>Total Pembayaran</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#166534" }}>{formatRupiah(trx.total)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* bukti foto */}
+      {trx.buktiFoto && (
+        <div>
+          <div style={{
+            fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8,
+            textTransform: "uppercase", letterSpacing: .5,
+          }}>
+            Foto Bukti Serah Terima
+          </div>
+          <FotoThumb
+            src={trx.buktiFoto}
+            size={72}
+            onClick={() => onLihatFoto(trx.buktiFoto, `Bukti Serah Terima · ${trx.nama}`)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── TRANSACTION ROW (desktop) ────────────────────────────────────────────────
-function TrxRow({ trx, index, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory, onLihatFoto, onTolak }) {
+function TrxRow({ trx, index, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint, onFoto, onHistory, onLihatFoto, onTolak }) {
   const orderCfg  = ORDER_STATUS_CONFIG[trx.status]  || {};
   return (
-    <tr style={{ borderBottom: "1px solid #F1F5F9", transition: "background .15s" }}
-      onMouseEnter={e => e.currentTarget.style.background = "#FAFBFF"}
-      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+    <>
+      <tr style={{ borderBottom: expanded ? "none" : "1px solid #F1F5F9", transition: "background .15s", background: expanded ? "#FAFBFF" : "transparent" }}
+        onMouseEnter={e => { if (!expanded) e.currentTarget.style.background = "#FAFBFF"; }}
+        onMouseLeave={e => { if (!expanded) e.currentTarget.style.background = "transparent"; }}>
 
-      {/* indicator bar */}
-      <td style={{ padding: "14px 0 14px 12px", width: 4 }}>
-        <div style={{ width: 4, height: 40, borderRadius: 4, background: orderCfg.color || "#CBD5E1" }} />
-      </td>
+        {/* indicator bar */}
+        <td style={{ padding: "14px 0 14px 12px", width: 4 }}>
+          <div style={{ width: 4, height: 40, borderRadius: 4, background: orderCfg.color || "#CBD5E1" }} />
+        </td>
 
-      <td style={{ padding: "14px 8px", color: "#94A3B8", fontSize: 13 }}>{index + 1}</td>
+        <td style={{ padding: "14px 8px", color: "#94A3B8", fontSize: 13 }}>{index + 1}</td>
 
-      <td style={{ padding: "14px 8px" }}>
-        <div style={{ fontWeight: 600, color: "#0F172A", fontSize: 14 }}>{trx.nama}</div>
-        <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
-          Kamar {trx.blok} · Reg {trx.nomorRegister}
-        </div>
-      </td>
+        <td style={{ padding: "14px 8px" }}>
+          <button
+            onClick={onToggle}
+            title="Lihat detail barang & WBP"
+            style={{
+              display: "flex", alignItems: "center", gap: 8, background: "none",
+              border: "none", cursor: "pointer", padding: 0, textAlign: "left",
+            }}
+          >
+            <span style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+              background: expanded ? "#3B82F6" : "#F1F5F9",
+              color: expanded ? "#fff" : "#94A3B8", transition: "all .15s",
+            }}>
+              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </span>
+            <span>
+              <div style={{ fontWeight: 600, color: "#0F172A", fontSize: 14 }}>{trx.nama}</div>
+              <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+                Kamar {trx.blok} · Reg {trx.nomorRegister}
+              </div>
+            </span>
+          </button>
+        </td>
 
-      <td style={{ padding: "14px 8px", fontSize: 13, color: "#475569" }}>{trx.date}</td>
+        <td style={{ padding: "14px 8px", fontSize: 13, color: "#475569" }}>{trx.date}</td>
 
-      <td style={{ padding: "14px 8px" }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{formatRupiah(trx.total)}</div>
-        <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
-          {trx.paymentMethod === "transfer" ? "Transfer" : "COD"}
-        </div>
-      </td>
-
-      <td style={{ padding: "14px 8px" }}><StatusBadge status={trx.status} type="order" /></td>
-
-      <td style={{ padding: "14px 8px" }}>
-        <StatusBadge status={trx.paymentStatus} type="payment" />
-      </td>
-
-      <td style={{ padding: "14px 8px" }}>
-        {trx.buktiFoto ? (
-          <FotoThumb src={trx.buktiFoto} onClick={() => onLihatFoto(trx.buktiFoto, `Bukti Serah Terima · ${trx.nama}`)} />
-        ) : (
-          <div style={{
-            width: 44, height: 44, background: "#F8FAFC", borderRadius: 8,
-            border: "1.5px dashed #CBD5E1", display: "flex",
-            alignItems: "center", justifyContent: "center",
-          }}>
-            <Camera size={16} color="#CBD5E1" />
+        <td style={{ padding: "14px 8px" }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{formatRupiah(trx.total)}</div>
+          <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+            {trx.paymentMethod === "transfer" ? "Transfer" : "COD"}
           </div>
-        )}
-      </td>
+        </td>
 
-      <td style={{ padding: "14px 12px 14px 8px" }}>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {trx.verifikasi_pembayaran !== null && trx.orderStatus !== "cancelled" && (
-            <ActionBtn icon={CheckCircle} color="#10B981" title="Konfirmasi Order" onClick={() => onKonfirmasi(trx.id)} />
+        <td style={{ padding: "14px 8px" }}><StatusBadge status={trx.status} type="order" /></td>
+
+        <td style={{ padding: "14px 8px" }}>
+          <StatusBadge status={trx.paymentStatus} type="payment" />
+        </td>
+
+        <td style={{ padding: "14px 8px" }}>
+          {trx.buktiFoto ? (
+            <FotoThumb src={trx.buktiFoto} onClick={() => onLihatFoto(trx.buktiFoto, `Bukti Serah Terima · ${trx.nama}`)} />
+          ) : (
+            <div style={{
+              width: 44, height: 44, background: "#F8FAFC", borderRadius: 8,
+              border: "1.5px dashed #CBD5E1", display: "flex",
+              alignItems: "center", justifyContent: "center",
+            }}>
+              <Camera size={16} color="#CBD5E1" />
+            </div>
           )}
-          {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
-            <ActionBtn icon={CreditCard} color="#8B5CF6" title="Verifikasi Pembayaran" onClick={() => onVerifikasi(trx)} />
-          )}
-          {/* Tolak pembayaran */}
-          {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
-            <ActionBtn icon={Ban} color="#EF4444" title="Tolak Pembayaran (Fake Transfer)" onClick={() => onTolak(trx)} />
-          )}
-          {/* Lihat bukti transfer */}
-          {trx.paymentMethod === "transfer" && trx.paymentData?.[0]?.proof_of_payment && (
-            <ActionBtn icon={Eye} color="#0EA5E9" title="Lihat Bukti Transfer" onClick={() => onLihatFoto(trx.paymentData[0].proof_of_payment, `Bukti Transfer · ${trx.nama}`)} />
-          )}
-          <ActionBtn icon={Printer} color="#475569" title="Cetak Struk" onClick={() => onPrint(trx)} />
-          {(trx.status === "Dikonfirmasi" || trx.status === "Selesai") && (
-            <ActionBtn icon={Camera} color="#10B981" title="Ambil Foto Bukti" onClick={() => onFoto(trx)} />
-          )}
-          {trx.status === "Selesai" && trx.orderHistory?.length > 0 && (
-            <ActionBtn icon={History} color="#8B5CF6" title="Riwayat Order" onClick={() => onHistory(trx)} />
-          )}
-        </div>
-      </td>
-    </tr>
+        </td>
+
+        <td style={{ padding: "14px 12px 14px 8px" }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            {trx.verifikasi_pembayaran !== null && trx.orderStatus !== "cancelled" && (
+              <ActionBtn icon={CheckCircle} color="#10B981" title="Konfirmasi Order" onClick={() => onKonfirmasi(trx.id)} />
+            )}
+            {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
+              <ActionBtn icon={CreditCard} color="#8B5CF6" title="Verifikasi Pembayaran" onClick={() => onVerifikasi(trx)} />
+            )}
+            {/* Tolak pembayaran */}
+            {trx.paymentMethod === "transfer" && trx.paymentStatus === "process" && (
+              <ActionBtn icon={Ban} color="#EF4444" title="Tolak Pembayaran (Fake Transfer)" onClick={() => onTolak(trx)} />
+            )}
+            {/* Lihat bukti transfer */}
+            {trx.paymentMethod === "transfer" && trx.paymentData?.[0]?.proof_of_payment && (
+              <ActionBtn icon={Eye} color="#0EA5E9" title="Lihat Bukti Transfer" onClick={() => onLihatFoto(trx.paymentData[0].proof_of_payment, `Bukti Transfer · ${trx.nama}`)} />
+            )}
+            <ActionBtn icon={Printer} color="#475569" title="Cetak Struk" onClick={() => onPrint(trx)} />
+            {(trx.status === "Dikonfirmasi" || trx.status === "Selesai") && (
+              <ActionBtn icon={Camera} color="#10B981" title="Ambil Foto Bukti" onClick={() => onFoto(trx)} />
+            )}
+            {trx.status === "Selesai" && trx.orderHistory?.length > 0 && (
+              <ActionBtn icon={History} color="#8B5CF6" title="Riwayat Order" onClick={() => onHistory(trx)} />
+            )}
+          </div>
+        </td>
+      </tr>
+
+      {/* ── EXPANDED DETAIL ROW ── */}
+      {expanded && (
+        <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
+          <td colSpan={9} style={{ padding: "0 12px 18px 12px", background: "#FAFBFF" }}>
+            <div style={{
+              background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0",
+              padding: "16px 18px", marginTop: 2,
+            }}>
+              <TrxDetailPanel trx={trx} onLihatFoto={onLihatFoto} />
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -300,49 +456,12 @@ function TrxCard({ trx, expanded, onToggle, onKonfirmasi, onVerifikasi, onPrint,
       {/* expanded detail */}
       {expanded && (
         <div style={{ padding: "0 16px 16px", borderTop: "1px solid #F1F5F9" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-            {[
-              ["Kamar", trx.blok],
-              ["No. Register", trx.nomorRegister],
-              ["Pengirim", trx.namaPengirim || "-"],
-              ["Metode", trx.paymentMethod === "transfer" ? "Transfer Bank" : "COD"],
-            ].map(([lbl, val]) => (
-              <div key={lbl}>
-                <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5 }}>{lbl}</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#334155", marginTop: 2 }}>{val}</div>
-              </div>
-            ))}
+          <div style={{ marginTop: 14 }}>
+            <TrxDetailPanel trx={trx} onLihatFoto={onLihatFoto} />
           </div>
 
-          {trx.items?.length > 0 && (
-            <div style={{ marginTop: 14, background: "#F8FAFC", borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Item Pesanan</div>
-              {trx.items.map((item, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                  <span style={{ color: "#475569" }}>{item.name} <span style={{ color: "#94A3B8" }}>×{item.qty}</span></span>
-                  <span style={{ fontWeight: 600, color: "#0F172A" }}>{formatRupiah(item.price * item.qty)}</span>
-                </div>
-              ))}
-              <div style={{ borderTop: "1px dashed #E2E8F0", marginTop: 8, paddingTop: 8, display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, color: "#0F172A" }}>
-                <span>Total</span>
-                <span>{formatRupiah(trx.total)}</span>
-              </div>
-            </div>
-          )}
-
-          {trx.buktiFoto && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: .5, marginBottom: 6 }}>Foto Bukti</div>
-              <FotoThumb
-                src={trx.buktiFoto}
-                size={80}
-                onClick={() => onLihatFoto(trx.buktiFoto, `Bukti Serah Terima · ${trx.nama}`)}
-              />
-            </div>
-          )}
-
           {/* action buttons */}
-          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
             {trx.verifikasi_pembayaran !== null && trx.orderStatus !== "cancelled" && (
               <MobileActionBtn icon={CheckCircle} label="Konfirmasi" color="#10B981" onClick={() => onKonfirmasi(trx.id)} />
             )}
@@ -1203,6 +1322,8 @@ export default function Transaksi() {
                   {filtered.map((trx, i) => (
                     <TrxRow
                       key={trx.id} trx={trx} index={i}
+                      expanded={expandedRows.has(trx.id)}
+                      onToggle={() => toggleRow(trx.id)}
                       onKonfirmasi={handleKonfirmasi}
                       onVerifikasi={bukaModalVerifikasi}
                       onPrint={handlePrint}
