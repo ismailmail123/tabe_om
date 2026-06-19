@@ -46,6 +46,21 @@ const Produk = () => {
     return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
+  // PERBAIKAN: Harga yang ditampilkan di Daftar Produk (tabel & mobile card)
+  // dihitung langsung dari variant termurah, supaya selalu sinkron tanpa
+  // perlu admin klik "Simpan Perubahan" dulu. Kalau produk belum punya
+  // variant, fallback ke harga produk yang tersimpan seperti biasa.
+  const getDisplayPrice = (product) => {
+    if (!product) return 0;
+    if (Array.isArray(product.variant) && product.variant.length > 0) {
+      const cheapestVariant = product.variant.reduce((cheapest, current) =>
+        Number(current.price) < Number(cheapest.price) ? current : cheapest
+      );
+      return cheapestVariant.price;
+    }
+    return product.price || 0;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -426,7 +441,7 @@ const Produk = () => {
                             <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{product.description}</p>
                           )}
                         </td>
-                        <td className="px-5 py-3 font-bold text-blue-600">{formatRupiah(product.price)}</td>
+                        <td className="px-5 py-3 font-bold text-blue-600">{formatRupiah(getDisplayPrice(product))}</td>
                         <td className="px-5 py-3">
                           <span className="inline-block bg-blue-50 text-blue-600 text-[11px] font-semibold px-2.5 py-1 rounded-full">
                             {product.category?.name || `Kategori ${product.category_id}`}
@@ -522,7 +537,7 @@ const Produk = () => {
                         </button>
                       </div>
 
-                      <p className="text-blue-600 font-bold text-sm mt-1">{formatRupiah(product.price)}</p>
+                      <p className="text-blue-600 font-bold text-sm mt-1">{formatRupiah(getDisplayPrice(product))}</p>
 
                       <span className="inline-block bg-blue-50 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1">
                         {product.category?.name || `Kategori ${product.category_id}`}
