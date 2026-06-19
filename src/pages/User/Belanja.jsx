@@ -50,6 +50,21 @@ const KoperasiBelanja = () => {
     return desc
   }
 
+  // PERBAIKAN: Kalau produk punya variant, harga yang ditampilkan ke customer
+  // adalah harga variant termurah (bukan harga master produk), supaya konsisten
+  // dengan harga yang muncul saat customer memilih variant di halaman detail.
+  // Kalau produk tidak punya variant, fallback ke harga master produk seperti biasa.
+  const getDisplayPrice = (product) => {
+    if (!product) return 0
+    if (Array.isArray(product.variant) && product.variant.length > 0) {
+      const cheapestVariant = product.variant.reduce((cheapest, current) =>
+        Number(current.price) < Number(cheapest.price) ? current : cheapest
+      )
+      return cheapestVariant.price
+    }
+    return product.price || product.harga || 0
+  }
+
   const handleProductClick = async (productId) => {
     setNavigatingProductId(productId)
     await new Promise((resolve) => setTimeout(resolve, 500))
@@ -219,7 +234,7 @@ const KoperasiBelanja = () => {
             {filteredProducts.map((product) => {
               const safeName     = getSafeName(product)
               const safeDesc     = getSafeDescription(product)
-              const safePrice    = product.price || product.harga || 0
+              const safePrice    = getDisplayPrice(product)
               const safeImage    = product.img_url || product.image || product.image_url || ""
               const safeStock    = product.stock || product.stok || 0
               const safeCategory = getSafeCategory(product)

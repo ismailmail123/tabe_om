@@ -27,6 +27,21 @@ const DetailProduk = () => {
   const formatRupiah = (n) =>
   "Rp " + Math.floor(n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
 
+  // PERBAIKAN: Harga yang ditampilkan ke customer (di header produk & kartu rekomendasi)
+  // diambil dari harga variant termurah, supaya konsisten dengan harga yang muncul
+  // saat customer memilih variant di modal "Pilih Variant". Kalau produk tidak punya
+  // variant, fallback ke harga master produk seperti biasa.
+  const getDisplayPrice = (product) => {
+    if (!product) return 0
+    if (Array.isArray(product.variant) && product.variant.length > 0) {
+      const cheapestVariant = product.variant.reduce((cheapest, current) =>
+        Number(current.price) < Number(cheapest.price) ? current : cheapest
+      )
+      return cheapestVariant.price
+    }
+    return product.price || 0
+  }
+
   // Fetch data
   useEffect(() => {
     fetchProductById(id);
@@ -221,7 +236,7 @@ const handleAddToCart = async () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{productDetail.name}</h1>
             <p className="text-gray-600 mb-3">{productDetail.desc}</p>
-            <div className="text-blue-600 text-2xl font-semibold mb-2">{formatRupiah(productDetail.price)}</div>
+            <div className="text-blue-600 text-2xl font-semibold mb-2">{formatRupiah(getDisplayPrice(productDetail))}</div>
             <p className="text-sm text-gray-500 mb-4">Stok: {productDetail.stock}</p>
 
             {/* Rating Section dari kode kedua */}
@@ -308,7 +323,7 @@ const handleAddToCart = async () => {
                 />
               </div>
               <h3 className="text-sm font-semibold text-gray-800 mt-2">{item.name}</h3>
-              <p className="text-blue-600 text-sm">{formatRupiah(item.price)}</p>
+              <p className="text-blue-600 text-sm">{formatRupiah(getDisplayPrice(item))}</p>
             </div>
           ))}
         </div>
