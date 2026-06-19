@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import useProductStore from "../../../stores/useProductStore";
 import useCategoryStore from "../../../stores/useCategoryStore";
+import useVariantStore from "../../../stores/useVariantStore";
 import { useNavigate } from "react-router-dom";
 
 const Produk = () => {
@@ -15,6 +16,7 @@ const Produk = () => {
   } = useProductStore();
 
   const { categories, fetchCategories } = useCategoryStore();
+  const { fetchVariantsByProductId } = useVariantStore();
 
   const [formData, setFormData] = useState({
     id: null,
@@ -31,6 +33,7 @@ const Produk = () => {
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [priceSyncing, setPriceSyncing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -77,7 +80,11 @@ const Produk = () => {
     }
   };
 
-  const handleEdit = (product) => {
+  // PERBAIKAN: handleEdit sekarang otomatis mengisi harga dari variant termurah
+  // (jika produk punya variant), tapi tetap bisa diedit manual oleh admin.
+  // Kalau produk belum punya variant sama sekali, harga produk yang tersimpan tetap dipakai.
+  const handleEdit = async (product) => {
+    // 1. Buka form dengan harga produk yang tersimpan dulu (fallback default)
     setFormData({
       id: product.id,
       name: product.name,
@@ -91,6 +98,31 @@ const Produk = () => {
     setEditing(true);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // 2. Ambil data variant produk ini, lalu sinkronkan harga ke variant termurah
+    setPriceSyncing(true);
+    try {
+      await fetchVariantsByProductId(product.id);
+      // Ambil langsung dari store (bukan dari closure hook) supaya datanya pasti yang terbaru
+      const productVariants = useVariantStore.getState().variants;
+
+      if (Array.isArray(productVariants) && productVariants.length > 0) {
+        const cheapestVariant = productVariants.reduce((cheapest, current) =>
+          Number(current.price) < Number(cheapest.price) ? current : cheapest
+        );
+
+        setFormData((prev) => ({
+          ...prev,
+          price: cheapestVariant.price.toString(),
+        }));
+      }
+      // Kalau productVariants kosong, harga produk yang tersimpan (sudah di-set di langkah 1) tetap dipakai.
+    } catch (error) {
+      console.error("Gagal mengambil variant untuk auto-fill harga:", error);
+      // Fallback aman: harga produk yang tersimpan tetap dipakai, tidak mengubah apa pun.
+    } finally {
+      setPriceSyncing(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -120,6 +152,7 @@ const Produk = () => {
     setImageFile(null);
     setEditing(false);
     setShowForm(false);
+    setPriceSyncing(false);
     const fileInput = document.querySelector('input[type="file"]');
     if (fileInput) fileInput.value = "";
   };
@@ -194,7 +227,15 @@ const Produk = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500">Harga <span className="text-red-400">*</span></label>
+                  <label className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                    Harga <span className="text-red-400">*</span>
+                    {priceSyncing && (
+                      <span className="text-[10px] text-blue-500 font-normal flex items-center gap-1">
+                        <span className="w-2.5 h-2.5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin inline-block" />
+                        menyesuaikan dari variant termurah...
+                      </span>
+                    )}
+                  </label>
                   <input
                     type="number"
                     name="price"
@@ -202,8 +243,14 @@ const Produk = () => {
                     value={formData.price}
                     onChange={handleChange}
                     className={inputClass}
+                    disabled={priceSyncing}
                     required
                   />
+                  {editing && !priceSyncing && (
+                    <p className="text-[11px] text-gray-400">
+                      Harga otomatis disesuaikan dari variant termurah (jika ada), tapi tetap bisa diubah manual.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -282,7 +329,7 @@ const Produk = () => {
               <div className="flex gap-3 pt-1">
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || priceSyncing}
                   className="flex-1 sm:flex-none px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
                 >
                   {isLoading ? "Menyimpan..." : editing ? "Simpan Perubahan" : "Tambah Produk"}
