@@ -8,7 +8,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Settings,
+  Settings, FileText,
   Layers
 } from "lucide-react"
 import useAuthStore from "../stores/useAuthStore"
@@ -81,6 +81,12 @@ export default function SidebarAdmin() {
       icon: Layers,
       label: "Manajement Category",
     },
+
+    {
+  path: "/dashboard/laporan",
+  icon: FileText,
+  label: "Laporan Bulanan",
+},
     {
       path: "/dashboard/user-manajemen",
       icon: Settings,

@@ -24,7 +24,7 @@ import UserManajement from "../pages/Admin/manajement/UserManajement";
 import AuthCallback from "../pages/Login/AuthCallback";
 import TransaksiUser from "../pages/User/Transaction";
 import DetailPayment from "../pages/User/DetailPayment";
-
+import LaporanBulanan from "../pages/Admin/transaksi/LaporanBulanan"
 import { isLoggedIn, getRole } from "../utils/auth";
 
 // 🔐 Proteksi halaman sesuai role
@@ -66,6 +66,7 @@ const RoutesIndex = () => {
         <Route path="categories/edit/:id" element={<CategoryForm />} />
         <Route path="categories/:id" element={<CategoryDetail />} />
         <Route path="user-manajemen" element={<UserManajement />} />
+        <Route path="laporan" element={<LaporanBulanan />} />
       </Route>
 
       {/* 👤 Halaman User */}
