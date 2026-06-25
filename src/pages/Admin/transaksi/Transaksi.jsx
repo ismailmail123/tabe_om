@@ -1043,8 +1043,13 @@ export default function Transaksi() {
             date: new Date(order.order_date || order.created_at).toLocaleDateString("id-ID"),
             total: order.total || order.total_price,
             status: mapOrderStatus(order.status),
+            // PERBAIKAN: item.name adalah nama VARIANT (mis. "Sampoerna Kretek"),
+            // sedangkan item.product_name adalah nama PRODUK INDUK (mis. "Sampoerna").
+            // Sebelumnya product_name diprioritaskan duluan, jadi yang tampil selalu
+            // nama produk induk. Sekarang dibalik: variant duluan, produk induk
+            // cuma jadi fallback kalau item.name kosong.
             items: order.items?.map((item) => ({
-              name: item.product_name || item.name,
+              name: item.name || item.product_name,
               qty: item.quantity,
               price: parseFloat(item.price) || 0,
             })) || [],
