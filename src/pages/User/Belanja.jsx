@@ -65,6 +65,37 @@ const KoperasiBelanja = () => {
     return product.price || product.harga || 0
   }
 
+  // PERBAIKAN: status stok yang ditampilkan ke customer sekarang mengikuti
+  // field `availability` yang di-toggle admin di halaman Kelola Produk,
+  // bukan cuma angka stock/stok.
+  //
+  // Sebelumnya: safeStock = product.stock || product.stok || 0
+  // Karena form Tambah/Edit Produk di admin tidak punya input angka stok
+  // sama sekali (cuma toggle Tersedia/Habis), banyak produk tidak punya
+  // field stock/stok -> otomatis dianggap 0 -> selalu tampil "Habis" di
+  // halaman belanja customer, walaupun admin sudah menandai "Tersedia".
+  //
+  // Sekarang: kalau product.availability === true, produk dianggap
+  // tersedia (kecuali memang ada angka stok dan angka itu 0). Angka
+  // stock/stok tetap dipakai untuk menampilkan "X tersisa" / ribbon
+  // "Stok menipis" kalau datanya memang ada.
+  const getStockInfo = (product) => {
+    if (!product) return { isAvailable: false, stock: 0, hasStockCount: false }
+
+    const rawStock = product.stock ?? product.stok
+    const hasStockCount = typeof rawStock === "number" && !Number.isNaN(rawStock)
+    const stock = hasStockCount ? rawStock : 0
+
+    let isAvailable
+    if (typeof product.availability === "boolean") {
+      isAvailable = product.availability && (!hasStockCount || stock > 0)
+    } else {
+      isAvailable = hasStockCount ? stock > 0 : true
+    }
+
+    return { isAvailable, stock, hasStockCount }
+  }
+
   const handleProductClick = async (productId) => {
     setNavigatingProductId(productId)
     await new Promise((resolve) => setTimeout(resolve, 500))
@@ -236,10 +267,10 @@ const KoperasiBelanja = () => {
               const safeDesc     = getSafeDescription(product)
               const safePrice    = getDisplayPrice(product)
               const safeImage    = product.img_url || product.image || product.image_url || ""
-              const safeStock    = product.stock || product.stok || 0
+              const { isAvailable, stock: safeStock, hasStockCount } = getStockInfo(product)
               const safeCategory = getSafeCategory(product)
               const isNavigating = navigatingProductId === product.id
-              const lowStock     = safeStock > 0 && safeStock <= 5
+              const lowStock      = hasStockCount && isAvailable && safeStock > 0 && safeStock <= 5
 
               return (
                 <button
@@ -295,7 +326,7 @@ const KoperasiBelanja = () => {
                     )}
 
                     {/* Out of stock overlay */}
-                    {safeStock === 0 && (
+                    {!isAvailable && (
                       <div className="absolute inset-0 bg-gray-900/40 flex items-center justify-center">
                         <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">Habis</span>
                       </div>
@@ -329,26 +360,26 @@ const KoperasiBelanja = () => {
                       </div>
 
                       <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
-                        ${safeStock === 0
+                        ${!isAvailable
                           ? "bg-red-50 text-red-400"
                           : lowStock
                           ? "bg-amber-50 text-amber-500"
                           : "bg-emerald-50 text-emerald-600"}`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full inline-block
-                          ${safeStock === 0 ? "bg-red-400" : lowStock ? "bg-amber-400" : "bg-emerald-400"}`}
+                          ${!isAvailable ? "bg-red-400" : lowStock ? "bg-amber-400" : "bg-emerald-400"}`}
                         />
-                        {safeStock === 0 ? "Habis" : `${safeStock} tersisa`}
+                        {!isAvailable ? "Habis" : hasStockCount ? `${safeStock} tersisa` : "Tersedia"}
                       </div>
                     </div>
 
                     {/* CTA strip */}
                     <div className={`mt-3 py-2 rounded-xl text-center text-xs font-semibold transition-colors
-                      ${safeStock === 0
+                      ${!isAvailable
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-blue-500/10 text-blue-600 group-hover:bg-blue-500 group-hover:text-white"}`}
                     >
-                      {safeStock === 0 ? "Stok habis" : "Lihat Detail →"}
+                      {!isAvailable ? "Stok habis" : "Lihat Detail →"}
                     </div>
                   </div>
                 </button>
