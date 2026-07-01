@@ -42,6 +42,25 @@ const DetailProduk = () => {
     return product.price || 0
   }
 
+  // PERBAIKAN: Stok yang ditampilkan ke customer (baris "Stok: X" di header
+  // produk) sekarang dihitung dari TOTAL stok semua variant, bukan cuma
+  // productDetail.stock di level produk induk. Field stok produk induk
+  // memang tidak pernah diisi kalau produk pakai sistem variant (form admin
+  // Kelola Produk belum ada input stok untuk produk induk), jadi selalu
+  // 0 -> makanya sebelumnya selalu tampil "Stok: 0" walau variant-nya
+  // masih ada stok. Kalau produk tidak punya variant, fallback ke stok
+  // produk induk seperti biasa.
+  const getDisplayStock = (product) => {
+    if (!product) return 0
+    if (Array.isArray(product.variant) && product.variant.length > 0) {
+      return product.variant.reduce((sum, v) => {
+        const vStock = Number(v.stock ?? v.stok ?? 0)
+        return sum + (Number.isNaN(vStock) ? 0 : vStock)
+      }, 0)
+    }
+    return Number(product.stock ?? product.stok ?? 0)
+  }
+
   // Fetch data
   useEffect(() => {
     fetchProductById(id);
@@ -237,7 +256,9 @@ const handleAddToCart = async () => {
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{productDetail.name}</h1>
             <p className="text-gray-600 mb-3">{productDetail.desc}</p>
             <div className="text-blue-600 text-2xl font-semibold mb-2">{formatRupiah(getDisplayPrice(productDetail))}</div>
-            <p className="text-sm text-gray-500 mb-4">Stok: {productDetail.stock}</p>
+            <p className={`text-sm mb-4 ${outOfStock ? "text-red-500 font-medium" : "text-gray-500"}`}>
+              {outOfStock ? "Stok habis" : `Stok: ${getDisplayStock(productDetail)}`}
+            </p>
 
             {/* Rating Section dari kode kedua */}
             <div className="flex justify-between items-center mb-4">
@@ -257,9 +278,14 @@ const handleAddToCart = async () => {
             {/* Tombol dari kode pertama - dengan modal variant */}
             <button
               onClick={() => setIsCartModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors w-full"
+              disabled={outOfStock}
+              className={`px-6 py-3 rounded-xl font-medium transition-colors w-full ${
+                outOfStock
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
             >
-              Tambah ke Keranjang
+              {outOfStock ? "Stok Habis" : "Tambah ke Keranjang"}
             </button>
           </div>
         </div>
