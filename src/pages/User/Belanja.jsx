@@ -79,9 +79,31 @@ const KoperasiBelanja = () => {
   // tersedia (kecuali memang ada angka stok dan angka itu 0). Angka
   // stock/stok tetap dipakai untuk menampilkan "X tersisa" / ribbon
   // "Stok menipis" kalau datanya memang ada.
+  //
+  // TAMBAHAN: kalau produk punya variant, stok yang ditampilkan ke customer
+  // dihitung dari TOTAL (jumlah) stok semua variant-nya -- bukan cuma
+  // mengandalkan product.stock/stok di level produk induk, yang memang
+  // tidak pernah diisi kalau produk pakai sistem variant (form admin
+  // tidak punya input stok untuk produk induk). Ini sama semangatnya
+  // dengan getDisplayPrice yang mengambil harga dari variant, hanya saja
+  // untuk stok kita jumlahkan semua variant (total unit yang bisa dibeli),
+  // bukan ambil salah satu.
   const getStockInfo = (product) => {
     if (!product) return { isAvailable: false, stock: 0, hasStockCount: false }
 
+    if (Array.isArray(product.variant) && product.variant.length > 0) {
+      const totalVariantStock = product.variant.reduce((sum, v) => {
+        const vStock = Number(v.stock ?? v.stok ?? 0)
+        return sum + (Number.isNaN(vStock) ? 0 : vStock)
+      }, 0)
+      // availability tetap dihormati sebagai override manual admin
+      // (misal admin mau sembunyikan produk walau variant masih ada stok).
+      const isAvailable = totalVariantStock > 0 && product.availability !== false
+      return { isAvailable, stock: totalVariantStock, hasStockCount: true }
+    }
+
+    // Produk tanpa variant: form admin belum punya input angka stok,
+    // jadi andalkan toggle Tersedia/Habis sebagai sumber utama status.
     const rawStock = product.stock ?? product.stok
     const hasStockCount = typeof rawStock === "number" && !Number.isNaN(rawStock)
     const stock = hasStockCount ? rawStock : 0
